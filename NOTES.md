@@ -69,14 +69,11 @@ width-correct:
 
 ## Historical: why literals needed a storage decision
 
-**A `ustring` cannot be given content yet.** `dim as ustring u = "hello"` is
-rejected, because mixing a ustring with a narrow string is deliberately an error
-until the UTF-8 conversion path exists (`ast-node-assign.bas`,
-`ast-node-bop.bas`). Rejecting is intentional — silently handing a byte buffer to
-a UTF-16 runtime would corrupt data.
+*Kept because the reasoning still governs anything else that stores ustring text.
+Option 1 below is what was implemented.*
 
-Compile-time literals are the right answer (zero runtime cost, matching how
-`symbAllocWStrConst` handles wstring), but there is a trap in the obvious
+Compile-time literals were the obvious answer (zero runtime cost, matching how
+`symbAllocWStrConst` handles wstring), but there was a trap in the obvious
 implementation:
 
 `FBS_VAR` stores literal text in a union of `littext as zstring ptr` /
@@ -92,26 +89,20 @@ question is the HOST compiler's `wstring`, not the target's** — the same hazar
 which `hUnescapeW` still gets wrong (`hlp-str.bas`, it splits surrogates on host
 width).
 
-So literals need one of:
+The three options were:
 
-1. **A dedicated union member**, e.g. `littextu as ushort ptr`, with its own
-   allocator and escape helpers. Correct by construction and host-width
-   independent. Most code, and touches `symb.bi`.
+1. **A dedicated union member**, `littextu as ushort ptr`, with its own
+   allocator. Correct by construction and host-width independent. **Chosen.**
 2. **Store as UTF-8 in `littext`** and decode to UTF-16 at emit time. Reuses the
    existing zstring literal machinery, but every backend must do the decode.
 3. **Reuse `littextw`** — rejected. Works on Windows, wrong on Linux.
 
-Option 1 is the recommendation: the whole point of the type is that its
-representation does not vary by host or target, and the literal pool should not
-be the one place that assumption breaks.
-
-Backends must emit explicit `uint16` arrays for the literal pool. `L"..."` is
-unusable because it is platform-width — `ir-hlc.bas` currently uses it for
-wstring literals, which is the trap to avoid.
+Option 1 won because the whole point of the type is that its representation does
+not vary by host or target, and the literal pool should not be the one place
+that assumption breaks.
 
 ## Still owed for Phase 1
 
-- (literals: done)
 - `VAR u = <ustring expr>` inference.
 - Multi-term concat optimization (`a = b + c + d` → one assign plus N
   concat-assigns). `hOptUStrAssignment` currently handles the single
