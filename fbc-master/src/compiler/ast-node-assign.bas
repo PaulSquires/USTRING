@@ -602,13 +602,11 @@ function astNewASSIGN _
 					rdfull = astGetFullType( r )
 					rdtype = typeGet( rdfull )
 					rdclass = typeGetClass( rdtype )
-				else
-					'' !!!TODO!!! a RUNTIME narrow string still needs the UTF-8
-					'' conversion path; reject rather than hand a byte buffer
-					'' to a UTF-16 runtime
-					errReport( FB_ERRMSG_TYPEMISMATCH )
-					exit function
 				end if
+
+				'' Anything still mixed is a RUNTIME narrow string, which
+				'' rtlUStrAssign() converts through UTF-8. Falling through is
+				'' correct -- no error.
 			end if
 
 			'' As with STRING below: only an initialization is emitted here.

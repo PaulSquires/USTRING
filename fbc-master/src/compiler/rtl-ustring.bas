@@ -117,6 +117,98 @@
 				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
 			} _
 		), _
+		/' function fb_UStrAssignFromA( byref dst as any, byval dst_size as const integer, _
+				byref src as const any, byval src_size as const integer, _
+				byval fillrem as const long, byval is_init as const long ) as ustring '/ _
+		( _
+			@FB_RTL_USTRASSIGNFROMA, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			6, _
+			{ _
+				( FB_DATATYPE_VOID, FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, TRUE, 0 ), _
+				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, TRUE, 0 ) _
+			} _
+		), _
+		/' function fb_UStrAssignToA( ... ) as string '/ _
+		( _
+			@FB_RTL_USTRASSIGNTOA, NULL, _
+			FB_DATATYPE_STRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			6, _
+			{ _
+				( FB_DATATYPE_VOID, FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, TRUE, 0 ), _
+				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, TRUE, 0 ) _
+			} _
+		), _
+		/' function fb_StrToUStr( byref src as const any, byval src_size as const integer ) as ustring '/ _
+		( _
+			@FB_RTL_STR2USTR, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			2, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' function fb_UStrToStr( byref src as const any, byval src_size as const integer ) as string '/ _
+		( _
+			@FB_RTL_USTR2STR, NULL, _
+			FB_DATATYPE_STRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			2, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' function fb_UStrConcatAU( byref dst as ustring, ... ) as ustring '/ _
+		( _
+			@FB_RTL_USTRCONCATAU, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			5, _
+			{ _
+				( FB_DATATYPE_USTRING, FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' function fb_UStrConcatUA( byref dst as ustring, ... ) as ustring '/ _
+		( _
+			@FB_RTL_USTRCONCATUA, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			5, _
+			{ _
+				( FB_DATATYPE_USTRING, FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' function fb_UStrAllocTempResult( byref src as ustring ) as ustring '/ _
+		( _
+			@FB_RTL_USTRALLOCTEMPRES, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			1, _
+			{ _
+				( FB_DATATYPE_USTRING, FB_PARAMMODE_BYREF, FALSE ) _
+			} _
+		), _
 		/' end of table '/ _
 		( _
 			NULL, NULL, _
@@ -159,7 +251,18 @@ function rtlUStrAssign _
 	ddtype = astGetDataType( dst )
 	sdtype = astGetDataType( src )
 
-	if( is_init ) then
+	'' Four combinations, because a ustring may be assigned from (or to) the
+	'' narrow world. The conversion entry points take is_init as an explicit
+	'' argument rather than having separate Init/Assign twins.
+	dim as integer needs_conv = (typeIsUstring( ddtype ) <> typeIsUstring( sdtype ))
+
+	if( needs_conv ) then
+		if( typeIsUstring( ddtype ) ) then
+			proc = astNewCALL( PROCLOOKUP( USTRASSIGNFROMA ) )
+		else
+			proc = astNewCALL( PROCLOOKUP( USTRASSIGNTOA ) )
+		end if
+	elseif( is_init ) then
 		proc = astNewCALL( PROCLOOKUP( USTRINIT ) )
 	else
 		proc = astNewCALL( PROCLOOKUP( USTRASSIGN ) )
@@ -179,10 +282,66 @@ function rtlUStrAssign _
 	if( astNewARG( proc, astNewCONSTi( slgt ) ) = NULL ) then exit function
 
 	'' fillrem: only a fixed-length destination needs its tail zeroed
-	if( astNewARG( proc, astNewCONSTi( ddtype = FB_DATATYPE_FIXUSTR ) ) = NULL ) then exit function
+	dim as integer fillrem = any
+	if( typeIsUstring( ddtype ) ) then
+		fillrem = (ddtype = FB_DATATYPE_FIXUSTR)
+	else
+		fillrem = (ddtype = FB_DATATYPE_FIXSTR)
+	end if
+	if( astNewARG( proc, astNewCONSTi( fillrem ) ) = NULL ) then exit function
+
+	'' the conversion entry points carry is_init as a sixth argument
+	if( needs_conv ) then
+		if( astNewARG( proc, astNewCONSTi( is_init ) ) = NULL ) then exit function
+	end if
 
 	'' the rtlib returns a pointer to the destination; nothing consumes it
 	astSetType( proc, FB_DATATYPE_VOID, NULL )
+
+	function = proc
+
+end function
+
+'':::::
+'' Mixed concatenation: one side ustring, the other narrow. The narrow side is
+'' decoded to UTF-16 and the result is a ustring, so text never degrades to
+'' bytes just because it was concatenated with a STRING.
+function rtlUStrConcatMixed _
+	( _
+		byval str1 as ASTNODE ptr, _
+		byval sdtype1 as integer, _
+		byval str2 as ASTNODE ptr, _
+		byval sdtype2 as integer _
+	) as ASTNODE ptr
+
+	dim as ASTNODE ptr proc = any
+	dim as FBSYMBOL ptr tmp = any
+	dim as longint str1len = any, str2len = any
+
+	function = NULL
+
+	if( typeIsUstring( sdtype1 ) ) then
+		proc = astNewCALL( PROCLOOKUP( USTRCONCATUA ) )
+	else
+		proc = astNewCALL( PROCLOOKUP( USTRCONCATAU ) )
+	end if
+
+	tmp = symbAddTempVar( FB_DATATYPE_USTRING )
+
+	if( astNewARG( proc, astNewLINK( astBuildTempVarClear( tmp ), _
+	                                 astNewVAR( tmp ), _
+	                                 AST_LINK_RETURN_RIGHT ) ) = NULL ) then
+		exit function
+	end if
+
+	'' lengths before astNewARG(), as everywhere else
+	str1len = rtlCalcStrLen( str1, sdtype1 )
+	str2len = rtlCalcStrLen( str2, sdtype2 )
+
+	if( astNewARG( proc, str1, sdtype1 ) = NULL ) then exit function
+	if( astNewARG( proc, astNewCONSTi( str1len ) ) = NULL ) then exit function
+	if( astNewARG( proc, str2, sdtype2 ) = NULL ) then exit function
+	if( astNewARG( proc, astNewCONSTi( str2len ) ) = NULL ) then exit function
 
 	function = proc
 
@@ -259,6 +418,80 @@ function rtlUStrConcatAssign _
 	if( astNewARG( proc, astNewCONSTi( ddtype = FB_DATATYPE_FIXUSTR ) ) = NULL ) then exit function
 
 	astSetType( proc, FB_DATATYPE_VOID, NULL )
+
+	function = proc
+
+end function
+
+'':::::
+'' Convert a narrow string expression to a ustring temp. Used where an operation
+'' has no mixed form of its own (comparison), so both sides can be made ustrings
+'' first and the normal path taken.
+'' Move a FUNCTION's ustring result out of its dying stack frame into a pooled
+'' temp descriptor, and return a pointer to that.
+function rtlUStrAllocTempResult _
+	( _
+		byval expr as ASTNODE ptr _
+	) as ASTNODE ptr
+
+	dim as ASTNODE ptr proc = any
+
+	function = NULL
+
+	proc = astNewCALL( PROCLOOKUP( USTRALLOCTEMPRES ) )
+
+	if( astNewARG( proc, expr ) = NULL ) then exit function
+
+	function = proc
+
+end function
+
+'':::::
+function rtlStrToUStr _
+	( _
+		byval expr as ASTNODE ptr _
+	) as ASTNODE ptr
+
+	dim as ASTNODE ptr proc = any
+	dim as integer dtype = any
+	dim as longint lgt = any
+
+	function = NULL
+
+	dtype = astGetDataType( expr )
+
+	proc = astNewCALL( PROCLOOKUP( STR2USTR ) )
+
+	lgt = rtlCalcStrLen( expr, dtype )
+
+	if( astNewARG( proc, expr, dtype ) = NULL ) then exit function
+	if( astNewARG( proc, astNewCONSTi( lgt ) ) = NULL ) then exit function
+
+	function = proc
+
+end function
+
+'':::::
+'' Convert a ustring expression to a narrow (UTF-8) string temp.
+function rtlUStrToStr _
+	( _
+		byval expr as ASTNODE ptr _
+	) as ASTNODE ptr
+
+	dim as ASTNODE ptr proc = any
+	dim as integer dtype = any
+	dim as longint lgt = any
+
+	function = NULL
+
+	dtype = astGetDataType( expr )
+
+	proc = astNewCALL( PROCLOOKUP( USTR2STR ) )
+
+	lgt = rtlCalcStrLen( expr, dtype )
+
+	if( astNewARG( proc, expr, dtype ) = NULL ) then exit function
+	if( astNewARG( proc, astNewCONSTi( lgt ) ) = NULL ) then exit function
 
 	function = proc
 

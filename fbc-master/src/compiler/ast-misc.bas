@@ -708,7 +708,13 @@ function astUpdStrConcat( byval n as ASTNODE ptr ) as ASTNODE ptr
 			r = n->r
 			dim as integer ldtype = astGetDataType( l ), rdtype = astGetDataType( r )
 			if( typeIsUstring( astGetDataType( n ) ) ) then
-				function = rtlUStrConcat( l, ldtype, r, rdtype )
+				if( typeIsUstring( ldtype ) <> typeIsUstring( rdtype ) ) then
+					'' one operand is narrow: decode it rather than letting a
+					'' byte buffer be read as UTF-16
+					function = rtlUStrConcatMixed( l, ldtype, r, rdtype )
+				else
+					function = rtlUStrConcat( l, ldtype, r, rdtype )
+				end if
 			elseif( astGetDataType( n ) <> FB_DATATYPE_WCHAR ) then
 				function = rtlStrConcat( l, ldtype, r, rdtype )
 			else

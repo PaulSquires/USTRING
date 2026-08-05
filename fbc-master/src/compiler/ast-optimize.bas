@@ -1576,6 +1576,13 @@ private function hMultStrConcatAssign _
 	) as ASTNODE ptr
 
 	if( typeIsUstring( dtype ) ) then
+		'' The dtype here is the DESTINATION's. An individual operand may still
+		'' be narrow -- "u = a + s + b" splits into per-operand appends, and
+		'' appending a narrow operand as raw code units silently reads two
+		'' bytes as one unit ("he" becomes U+6568). Decode it first.
+		if( typeIsUstring( astGetDataType( src ) ) = FALSE ) then
+			src = rtlStrToUStr( src )
+		end if
 		function = rtlUStrConcatAssign( dst, src )
 	elseif( typeGet( dtype ) = FB_DATATYPE_WCHAR ) then
 		function = rtlWstrConcatAssign( dst, src )
@@ -1699,6 +1706,15 @@ private function hOptUStrAssignment _
 	) as ASTNODE ptr
 
 	dim as integer optimize = FALSE
+
+	'' A mixed assignment (one side narrow) converts through UTF-8, so the
+	'' in-place growth rewrites below do not apply -- fb_UStrConcatAssign has no
+	'' converting form. Take the plain path.
+	if( typeIsUstring( astGetDataType( l ) ) <> typeIsUstring( astGetDataType( r ) ) ) then
+		function = rtlUStrAssign( l, astUpdStrConcat( r ) )
+		astDelNode( n )
+		exit function
+	end if
 
 	'' is right side "l + expr", with l a plain var that does not also appear
 	'' on the right? (if it appeared on both sides, growing l in place would
@@ -1915,16 +1931,22 @@ function astOptAssignment( byval n as ASTNODE ptr ) as ASTNODE ptr
 
 	dtype = astGetFullType( n )
 
+	'' ustrings take their own path -- hOptStrAssignment() would select the
+	'' byte-oriented runtime functions.
+	''
+	'' Checked on EITHER side, not just the destination: "s = u" has a STRING
+	'' destination but still needs the ustring conversion path, and dispatching
+	'' on the destination alone would send it to fb_StrAssign with a UTF-16
+	'' buffer.
+	if( typeIsUstring( dtype ) or typeIsUstring( astGetDataType( r ) ) ) then
+		return hOptUStrAssignment( n, l, r )
+	end if
+
 	'' strings?
 	select case typeGet( dtype )
 	case FB_DATATYPE_STRING, FB_DATATYPE_FIXSTR, _
 		 FB_DATATYPE_WCHAR
 		return hOptStrAssignment( n, l, r )
-
-	'' ustrings take their own path -- hOptStrAssignment() would select the
-	'' byte-oriented runtime functions
-	case FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR
-		return hOptUStrAssignment( n, l, r )
 	end select
 
 	dclass = typeGetClass( dtype )

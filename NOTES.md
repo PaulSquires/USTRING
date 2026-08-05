@@ -139,10 +139,35 @@ cannot grow, so the rewrite buys nothing.
 
 **Phase 1 is complete.**
 
+## Phase 2 — narrow interop, procedures (in progress)
+
+Done: `STRING`/`ZSTRING` ↔ `USTRING` assignment, mixed concatenation in both
+orders, cross-type comparison, `BYREF`/`BYVAL` parameters, and `FUNCTION … AS
+USTRING`. Conversion is UTF-8 both ways with U+FFFD for malformed input, so it
+is identical on every target — unlike `STRING` ↔ `WSTRING`, which goes through
+the C locale.
+
+Three bugs found by testing rather than by reading, all of which produced
+plausible-looking output:
+
+1. **`BYVAL` did not copy.** A ustring is non-trivial, so it always travels by
+   address; without a temp copy the callee edited the caller's variable.
+   `hAllocTempUString()` supplies the copy, mirroring `hAllocTempString()`.
+2. **Discarded results leaked a pooled temp descriptor.** Only 256 exist, so a
+   loop ignoring results exhausted the pool and every later call returned the
+   null descriptor — reading as length 0, not as a crash. `ast-node-call.bas`
+   now releases them.
+3. **Multi-term concat corrupted mixed operands.** `hOptStrMultConcat` splits
+   into per-operand appends and dispatched on the *destination* dtype, so a
+   narrow operand was appended as raw code units: `"he"` became U+6568.
+   `hMultStrConcatAssign()` decodes it first.
+
+Still owed in Phase 2: `WSTRING` interop (including the Windows free-reinterpret
+vs Linux materialize-and-warn asymmetry), overload resolution between the three
+string types, and the copy-back list for narrow arguments modified through a
+ustring parameter.
+
 ## Later phases
 
-Phase 2 is the interop matrix (the UTF-8 conversion paths, and the Windows/Linux
-asymmetry when passing a ustring to `byref as wstring` — free reinterpret on
-Windows, materialize plus warn on Linux). Phase 3 is the intrinsic surface,
-including a generated BMP case-mapping table, since `towlower` is
-locale-dependent and would reintroduce platform divergence.
+Phase 3 is the intrinsic surface, including a generated BMP case-mapping table,
+since `towlower` is locale-dependent and would reintroduce platform divergence.

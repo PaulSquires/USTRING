@@ -19,6 +19,20 @@ sub chk( byref nm as string, byval got as longint, byval want as longint )
 	end if
 end sub
 
+function pmk( byref tail as ustring ) as ustring
+    dim as ustring r = "x"
+    return r + tail
+end function
+
+sub pmutate( byval u as ustring )
+    u = u + "MUT"
+end sub
+
+function ptakeref( byref u as ustring ) as integer
+    return len(u)
+end function
+
+
 '' ---------------------------------------------------------------- geometry
 '' The descriptor must be the size fbc hardcodes in symb-data.bas, and must
 '' match FBUSTRING in src/rtlib/fb_ustring.h -- if these drift, every ustring
@@ -152,8 +166,90 @@ dim as ustring * 16 mfix
 mfix = m1 + m2 + m3
 chk( "fixed dest multi-concat", cint(mfix = "122333"), cint(-1) )
 
-print g_run; " checks,"; g_fail; " failed"
+'' ================================================================ PHASE 2
+'' Interop: a ustring must work everywhere a string does, and vice versa.
+'' Conversion between the two is UTF-8 on every target (D5), so these checks are
+'' about fidelity, not just "it compiled".
 
+'' ------------------------------------------------- narrow <-> ustring
+dim as string ns = "hello"
+dim as ustring nu
+nu = ns
+chk( "STRING -> USTRING len", len(nu), 5 )
+chk( "STRING -> USTRING content", cint(nu = "hello"), cint(-1) )
+
+dim as string back
+back = nu
+chk( "USTRING -> STRING len", len(back), 5 )
+chk( "USTRING -> STRING content", cint(back = "hello"), cint(-1) )
+
+dim as zstring * 16 nz = "hey"
+dim as ustring uz
+uz = nz
+chk( "ZSTRING -> USTRING", len(uz), 3 )
+
+'' mixed concatenation, both orders; the narrow side is decoded, never
+'' reinterpreted as UTF-16
+dim as ustring mixres
+mixres = nu + ns
+chk( "ustring + string len", len(mixres), 10 )
+chk( "ustring + string content", cint(mixres = "hellohello"), cint(-1) )
+mixres = ns + nu
+chk( "string + ustring len", len(mixres), 10 )
+
+'' comparison across the two worlds
+chk( "ustring = string", cint(nu = ns), cint(-1) )
+chk( "ustring <> other string", cint(nu = "nope"), cint(0) )
+
+'' ---------------------------------------------- UTF-8 round-trip fidelity
+'' The multi-byte cases are the ones that would silently corrupt if the
+'' conversion treated bytes as code units.
+dim as string e1 = "é", e2 = "€", e3 = "𝄞"
+dim as ustring q1, q2, q3
+q1 = e1 : q2 = e2 : q3 = e3
+chk( "U+00E9: 2 bytes -> 1 unit", len(q1), 1 )
+chk( "U+20AC: 3 bytes -> 1 unit", len(q2), 1 )
+chk( "U+1D11E: 4 bytes -> 2 units", len(q3), 2 )
+
+dim as string r1, r2, r3
+r1 = q1 : r2 = q2 : r3 = q3
+chk( "U+00E9 round-trips", cint(r1 = e1), cint(-1) )
+chk( "U+20AC round-trips", cint(r2 = e2), cint(-1) )
+chk( "U+1D11E round-trips", cint(r3 = e3), cint(-1) )
+
+'' malformed UTF-8 becomes U+FFFD rather than failing -- a damaged file must
+'' still open
+dim as string badbytes = chr(255) + "ok"
+dim as ustring ubad
+ubad = badbytes
+chk( "malformed byte -> U+FFFD, text preserved", len(ubad), 3 )
+
+'' --------------------------------------- procedures: params and results
+dim as ustring pt = "yz"
+chk( "function result len", len(pmk(pt)), 3 )
+chk( "function result content", cint(pmk(pt) = "xyz"), cint(-1) )
+chk( "result inside a concat", len(pmk(pt) + pmk(pt)), 6 )
+chk( "result fed to a param", len(pmk(pmk(pt))), 4 )
+
+'' BYVAL must copy. A ustring is non-trivial so it always travels by address;
+'' without the temp copy the callee would be editing the caller's variable.
+dim as ustring porig = "abc"
+pmutate( porig )
+chk( "byval did not mutate caller", len(porig), 3 )
+
+'' A DISCARDED result still occupies a pooled temp descriptor. There are only
+'' 256, so a loop that ignores results exhausts the pool and every later call
+'' quietly returns the null descriptor -- which reads as length 0, not a crash.
+for pi as integer = 1 to 20000
+    pmk( pt )
+next
+chk( "20000 discarded results, pool not exhausted", len(pmk(pt)), 3 )
+
+'' a narrow argument passed to a ustring parameter converts through UTF-8
+dim as string pns = "hi"
+chk( "narrow arg -> ustring param", ptakeref( pns ), 2 )
+
+print g_run; " checks,"; g_fail; " failed"
 if( g_fail <> 0 ) then
 	end 1
 end if

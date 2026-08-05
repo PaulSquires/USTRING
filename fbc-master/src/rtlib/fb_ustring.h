@@ -246,4 +246,18 @@ FBCALL void        *fb_UStrConcatAssign ( void *dst, ssize_t dst_size, void *src
 FBCALL int          fb_UStrCompare      ( void *str1, ssize_t str1_size, void *str2, ssize_t str2_size );
 FBCALL ssize_t      fb_UStrLen          ( void *str, ssize_t str_size );
 
+
+/* ------------------------------------------- narrow <-> ustring conversion
+** UTF-8 in both directions, on every target, with U+FFFD for malformed input.
+** NOT the locale-based path STRING <-> WSTRING uses -- that is codepage- and
+** platform-dependent, which a portable type cannot afford.
+*/
+FBCALL void        *fb_UStrAssignFromA   ( void *dst, ssize_t dst_size, void *src, ssize_t src_size, int fill_rem, int is_init );
+FBCALL void        *fb_UStrAssignToA     ( void *dst, ssize_t dst_size, void *src, ssize_t src_size, int fill_rem, int is_init );
+FBCALL FBUSTRING   *fb_StrToUStr         ( void *src, ssize_t src_size );
+FBCALL FBSTRING    *fb_UStrToStr         ( void *src, ssize_t src_size );
+FBCALL FBUSTRING   *fb_UStrConcatAU      ( FBUSTRING *dst, void *str1, ssize_t str1_size, void *str2, ssize_t str2_size );
+FBCALL FBUSTRING   *fb_UStrConcatUA      ( FBUSTRING *dst, void *str1, ssize_t str1_size, void *str2, ssize_t str2_size );
+FBCALL FBUSTRING   *fb_UStrAllocTempResult( FBUSTRING *src );
+
 #endif /*__FB_USTRING_H__*/

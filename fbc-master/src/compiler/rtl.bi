@@ -26,6 +26,13 @@
 #define FB_RTL_USTRCONCATASSIGN         "fb_UStrConcatAssign"
 #define FB_RTL_USTRCOMPARE              "fb_UStrCompare"
 #define FB_RTL_USTRLEN                  "fb_UStrLen"
+#define FB_RTL_USTRASSIGNFROMA          "fb_UStrAssignFromA"
+#define FB_RTL_USTRASSIGNTOA            "fb_UStrAssignToA"
+#define FB_RTL_STR2USTR                 "fb_StrToUStr"
+#define FB_RTL_USTR2STR                 "fb_UStrToStr"
+#define FB_RTL_USTRCONCATAU             "fb_UStrConcatAU"
+#define FB_RTL_USTRCONCATUA             "fb_UStrConcatUA"
+#define FB_RTL_USTRALLOCTEMPRES         "fb_UStrAllocTempResult"
 
 #define FB_RTL_BOOL2STR                 "fb_BoolToStr"
 #define FB_RTL_INT2STR                  "fb_IntToStr"
@@ -868,6 +875,13 @@ enum FB_RTL_IDX
 	FB_RTL_IDX_USTRCONCATASSIGN
 	FB_RTL_IDX_USTRCOMPARE
 	FB_RTL_IDX_USTRLEN
+	FB_RTL_IDX_USTRASSIGNFROMA
+	FB_RTL_IDX_USTRASSIGNTOA
+	FB_RTL_IDX_STR2USTR
+	FB_RTL_IDX_USTR2STR
+	FB_RTL_IDX_USTRCONCATAU
+	FB_RTL_IDX_USTRCONCATUA
+	FB_RTL_IDX_USTRALLOCTEMPRES
 
 	FB_RTL_INDEXES
 end enum
@@ -1041,6 +1055,17 @@ declare function rtlUStrConcatAssign _
 		byval src as ASTNODE ptr _
 	) as ASTNODE ptr
 
+declare function rtlUStrConcatMixed _
+	( _
+		byval str1 as ASTNODE ptr, _
+		byval sdtype1 as integer, _
+		byval str2 as ASTNODE ptr, _
+		byval sdtype2 as integer _
+	) as ASTNODE ptr
+
+declare function rtlUStrAllocTempResult( byval expr as ASTNODE ptr ) as ASTNODE ptr
+declare function rtlStrToUStr( byval expr as ASTNODE ptr ) as ASTNODE ptr
+declare function rtlUStrToStr( byval expr as ASTNODE ptr ) as ASTNODE ptr
 declare function rtlUStrDelete( byval expr as ASTNODE ptr ) as ASTNODE ptr
 declare function rtlUStrLen( byval expr as ASTNODE ptr ) as ASTNODE ptr
 

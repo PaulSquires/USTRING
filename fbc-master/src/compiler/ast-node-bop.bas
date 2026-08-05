@@ -37,22 +37,22 @@ private function hUStrPromoteLit _
 
 	if( typeIsUstring( ldtype ) ) then
 		ulit = astNewUStrLiteral( r )
-		if( ulit = NULL ) then
-			return FALSE
+		if( ulit <> NULL ) then
+			astDelTree( r )
+			r = ulit
+			rdtype = astGetDataType( r )
 		end if
-		astDelTree( r )
-		r = ulit
-		rdtype = astGetDataType( r )
 	else
 		ulit = astNewUStrLiteral( l )
-		if( ulit = NULL ) then
-			return FALSE
+		if( ulit <> NULL ) then
+			astDelTree( l )
+			l = ulit
+			ldtype = astGetDataType( l )
 		end if
-		astDelTree( l )
-		l = ulit
-		ldtype = astGetDataType( l )
 	end if
 
+	'' Still mixed? That is a RUNTIME narrow string, handled by the converting
+	'' concat/compare builders. Not an error.
 	function = TRUE
 end function
 
@@ -1013,10 +1013,10 @@ function astNewBOP _
 			end if
 
 			if( is_ustr_op ) then
-				if( hUStrPromoteLit( l, ldtype, r, rdtype ) = FALSE ) then
-					errReport( FB_ERRMSG_TYPEMISMATCH )
-					exit function
-				end if
+				'' fold a narrow LITERAL operand into a ustring literal; a
+				'' runtime narrow operand is left alone and handled by the
+				'' converting concat builder in astUpdStrConcat()
+				hUStrPromoteLit( l, ldtype, r, rdtype )
 
 				'' result is always a var-len ustring
 				ldtype = typeUnsetIsConst( typeJoin( ldtype, FB_DATATYPE_USTRING ) )
@@ -1042,10 +1042,20 @@ function astNewBOP _
 
 			'' convert to: strcmp(l,r) op 0
 			if( is_ustr_op ) then
-				if( hUStrPromoteLit( l, ldtype, r, rdtype ) = FALSE ) then
-					errReport( FB_ERRMSG_TYPEMISMATCH )
-					exit function
+				hUStrPromoteLit( l, ldtype, r, rdtype )
+
+				'' Comparison has no mixed form of its own, so convert the
+				'' narrow side to a ustring temp and compare like with like.
+				if( typeIsUstring( ldtype ) <> typeIsUstring( rdtype ) ) then
+					if( typeIsUstring( ldtype ) ) then
+						r = rtlStrToUStr( r )
+						rdtype = astGetDataType( r )
+					else
+						l = rtlStrToUStr( l )
+						ldtype = astGetDataType( l )
+					end if
 				end if
+
 				l = rtlUStrCompare( l, ldtype, r, rdtype )
 			else
 				l = rtlStrCompare( l, ldtype, r, rdtype )

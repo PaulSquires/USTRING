@@ -856,8 +856,14 @@ private sub hLoadProcResult( byval proc as FBSYMBOL ptr )
 	'' will be trashed when the function returns (also, the string returned will be
 	'' set as temp, so any assignment or when passed as parameter to another proc
 	'' will deallocate this string)
-	if( (symbGetType( proc ) = FB_DATATYPE_STRING) and (not symbIsReturnByRef( proc )) ) then
-		n = rtlStrAllocTempResult( astNewVAR( s ) )
+	if( ((symbGetType( proc ) = FB_DATATYPE_STRING) or _
+	     (symbGetType( proc ) = FB_DATATYPE_USTRING)) and _
+	    (not symbIsReturnByRef( proc )) ) then
+		if( symbGetType( proc ) = FB_DATATYPE_USTRING ) then
+			n = rtlUStrAllocTempResult( astNewVAR( s ) )
+		else
+			n = rtlStrAllocTempResult( astNewVAR( s ) )
+		end if
 
 		select case env.clopt.backend
 		case FB_BACKEND_GCC, FB_BACKEND_CLANG, FB_BACKEND_LLVM, FB_BACKEND_GAS64

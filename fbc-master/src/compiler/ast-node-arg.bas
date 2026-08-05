@@ -80,6 +80,33 @@ private function hAllocTempString _
 		AST_LINK_RETURN_RIGHT )
 end function
 
+'' Copy an argument into a temp ustring and pass that.
+''
+'' This is what makes BYVAL actually mean by-value: a ustring is non-trivial, so
+'' it is always passed by address, and without this copy the callee would be
+'' mutating the caller's variable. The temp is registered for destruction at
+'' statement end, so the copy is released.
+private function hAllocTempUString _
+	( _
+		byval parent as ASTNODE ptr, _
+		byval n as ASTNODE ptr _
+	) as ASTNODE ptr
+
+	dim as FBSYMBOL ptr temp = any
+
+	temp = symbAddTempVar( FB_DATATYPE_USTRING )
+	astDtorListAdd( temp )
+
+	'' temp ustring = src (rtlUStrAssign converts if src is narrow)
+	function = astNewLINK( _
+		astNewLINK( _
+			astBuildTempVarClear( temp ), _
+			rtlUStrAssign( astNewVAR( temp ), n ), _
+			AST_LINK_RETURN_NONE ), _
+		astNewVAR( temp ), _
+		AST_LINK_RETURN_RIGHT )
+end function
+
 private function hAllocTempWstrPtr _
 	( _
 		byval parent as ASTNODE ptr, _
@@ -570,6 +597,58 @@ private sub hCheckVoidParam _
 	hCheckByrefParam( parent->sym, param, n, TRUE )
 end sub
 
+'' BYREF/BYVAL AS USTRING.
+''
+'' Same shape as hCheckStrParam(): a ustring is non-trivial (typeIsTrivial()
+'' returns FALSE for it), so BYVAL is really "copy into a temp and pass that
+'' temp byref" -- which is why both modes end in hBuildByrefArg().
+private function hCheckUStrParam _
+	( _
+		byval parent as ASTNODE ptr, _
+		byval param as FBSYMBOL ptr, _
+		byval n as ASTNODE ptr _
+	) as integer
+
+	dim as integer argdtype = astGetDatatype( n->l )
+
+	dim as integer pass_asis = FALSE
+
+	select case as const( argdtype )
+	case FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR
+		'' A var-len ustring variable can be handed over directly, preserving
+		'' BYREF semantics -- but only for BYREF, and only when it is not a
+		'' CALL result (those are pooled temps that would be released early).
+		if( symbGetParamMode( param ) = FB_PARAMMODE_BYREF ) then
+			if( argdtype = FB_DATATYPE_USTRING ) then
+				pass_asis = (astIsCALL( n->l ) = FALSE)
+			end if
+		end if
+
+	'' a narrow string? fold a literal now; a runtime one is converted by
+	'' rtlUStrAssign() inside the temp copy below
+	case FB_DATATYPE_STRING, FB_DATATYPE_FIXSTR, FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR
+		dim as ASTNODE ptr conv = astNewUStrLiteral( n->l )
+		if( conv <> NULL ) then
+			astDelTree( n->l )
+			n->l = conv
+		end if
+
+	case else
+		errReport( FB_ERRMSG_PARAMTYPEMISMATCHAT )
+		return FALSE
+	end select
+
+	'' Everything else is copied into a temp ustring, which is what gives BYVAL
+	'' its by-value semantics and what converts a narrow argument.
+	if( pass_asis = FALSE ) then
+		n->l = hAllocTempUString( parent, n->l )
+	end if
+
+	hBuildByrefArg( param, n )
+
+	function = TRUE
+end function
+
 private function hCheckStrParam _
 	( _
 		byval parent as ASTNODE ptr, _
@@ -906,6 +985,10 @@ private function hCheckParam _
 	'' string param?
 	case FB_DATATYPE_STRING
 		return hCheckStrParam( parent, param, n )
+
+	'' ustring param?
+	case FB_DATATYPE_USTRING
+		return hCheckUStrParam( parent, param, n )
 
 	'' z/wstring param?
 	case FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR

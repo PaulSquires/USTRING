@@ -638,6 +638,15 @@ function astIgnoreCallResult( byval n as ASTNODE ptr ) as ASTNODE ptr
 	'' to delete the returned temp string, no temp var needed.
 	'' (for wstrings, a temp var couldn't be used anyways, because there's
 	'' no dynamic wstring type)
+	'' Discarded ustring result: the callee moved its result into a POOLED
+	'' temp descriptor, so dropping the value on the floor leaks a pool slot,
+	'' not just memory. There are only 256, so a loop that ignores results
+	'' exhausts them and every later call silently returns the null descriptor.
+	if( dtype = FB_DATATYPE_USTRING ) then
+		assert( symbIsReturnByref( n->sym ) = FALSE )
+		return rtlUStrDelete( n )
+	end if
+
 	select case( dtype )
 	case FB_DATATYPE_STRING, FB_DATATYPE_WCHAR
 		'' This mustn't be done if returning BYREF, but in that case
