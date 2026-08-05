@@ -1268,13 +1268,18 @@ private sub hCallFieldDtor _
 		'' Normal field
 		if( symbGetType( fld ) = FB_DATATYPE_STRING ) then
 			astAdd( rtlStrDelete( astBuildVarField( this_, fld ) ) )
+		elseif( symbGetType( fld ) = FB_DATATYPE_USTRING ) then
+			'' without this the generated dtor is emitted but EMPTY, so every
+			'' UDT holding a ustring leaks its field
+			astAdd( rtlUStrDelete( astBuildVarField( this_, fld ) ) )
 		elseif( symbHasDtor( fld ) ) then
 			'' dtor( this.field )
 			astAdd( astBuildDtorCall( symbGetSubtype( fld ), astBuildVarField( this_, fld ) ) )
 		end if
 	else
 		'' Fixed-size array field
-		if( symbGetType( fld ) = FB_DATATYPE_STRING ) then
+		if( (symbGetType( fld ) = FB_DATATYPE_STRING) or _
+		    (symbGetType( fld ) = FB_DATATYPE_USTRING) ) then
 			astAdd( rtlArrayErase( astNewNIDXARRAY( astBuildVarField( this_, fld ) ), FALSE, FALSE ) )
 		elseif( symbHasDtor( fld ) ) then
 			astAdd( hCallCtorList( FALSE, this_, fld ) )

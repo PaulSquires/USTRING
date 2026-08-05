@@ -144,6 +144,26 @@
 				( FB_DATATYPE_VOID, FB_PARAMMODE_BYDESC, FALSE ) _
 			} _
 		), _
+		/' sub fb_ArrayDestructUStr( array() as any ) '/ _
+		( _
+			@FB_RTL_ARRAYDESTRUCTUSTR, NULL, _
+			FB_DATATYPE_VOID, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			1, _
+			{ _
+				( FB_DATATYPE_VOID, FB_PARAMMODE_BYDESC, FALSE ) _
+			} _
+		), _
+		/' sub fb_ArrayUStrErase( array() as any ) '/ _
+		( _
+			@FB_RTL_ARRAYERASEUSTR, NULL, _
+			FB_DATATYPE_VOID, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			1, _
+			{ _
+				( FB_DATATYPE_VOID, FB_PARAMMODE_BYDESC, FALSE ) _
+			} _
+		), _
 		/' function fb_ArrayClear( array() as any ) as long '/ _
 		( _
 			@FB_RTL_ARRAYCLEAR, NULL, _
@@ -446,6 +466,15 @@ function rtlArrayClear( byval arrayexpr as ASTNODE ptr ) as ASTNODE ptr
 			exit function
 		end if
 
+	elseif( dtype = FB_DATATYPE_USTRING ) then
+		'' ditto for ustrings -- without this every element's buffer leaks
+		proc = astNewCALL( PROCLOOKUP( ARRAYDESTRUCTUSTR ) )
+
+		'' array() as any
+		if( astNewARG( proc, arrayexpr, dtype ) = NULL ) then
+			exit function
+		end if
+
 	elseif( dtype = FB_DATATYPE_STRING ) then
 		'' fb_ArrayDestructStr() to clear the string array
 		'' - there is no fb_ArrayClearStr() in rtlib
@@ -547,6 +576,17 @@ function rtlArrayErase _
 
 		'' byval dtor as sub cdecl( )
 		if( astNewARG( proc, hBuildProcPtr( dtor ) ) = NULL ) then
+			exit function
+		end if
+	elseif( dtype = FB_DATATYPE_USTRING ) then
+		if( is_dynamic ) then
+			proc = astNewCALL( PROCLOOKUP( ARRAYERASEUSTR ) )
+		else
+			proc = astNewCALL( PROCLOOKUP( ARRAYDESTRUCTUSTR ) )
+		end if
+
+		'' array() as any
+		if( astNewARG( proc, arrayexpr, dtype ) = NULL ) then
 			exit function
 		end if
 	elseif( dtype = FB_DATATYPE_STRING ) then

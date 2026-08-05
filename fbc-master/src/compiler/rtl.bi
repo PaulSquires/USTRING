@@ -188,6 +188,8 @@
 
 #define FB_RTL_ARRAYDESTRUCTOBJ         "fb_ArrayDestructObj"
 #define FB_RTL_ARRAYDESTRUCTSTR         "fb_ArrayDestructStr"
+#define FB_RTL_ARRAYDESTRUCTUSTR       "fb_ArrayDestructUStr"
+#define FB_RTL_ARRAYERASEUSTR          "fb_ArrayUStrErase"
 #define FB_RTL_ARRAYCLEAR               "fb_ArrayClear"
 #define FB_RTL_ARRAYFILL                "fb_ArrayFill"
 #define FB_RTL_ARRAYCLEAROBJ            "fb_ArrayClearObj"
@@ -612,6 +614,8 @@ enum FB_RTL_IDX
 
 	FB_RTL_IDX_ARRAYDESTRUCTOBJ
 	FB_RTL_IDX_ARRAYDESTRUCTSTR
+	FB_RTL_IDX_ARRAYDESTRUCTUSTR
+	FB_RTL_IDX_ARRAYERASEUSTR
 	FB_RTL_IDX_ARRAYCLEAR
 	FB_RTL_IDX_ARRAYFILL
 	FB_RTL_IDX_ARRAYCLEAROBJ

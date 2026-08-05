@@ -955,8 +955,13 @@ private function _emitBegin( ) as integer
 
 	if( fbIs64bit( ) ) then
 		hWriteLine( "%FBSTRING = type { i8*, i64, i64 }" )
+		'' i16* -- a ustring code unit is 16 bits on every target, never the
+		'' target's wchar_t. Without this the IR REFERENCES %FBUSTRING without
+		'' defining it, which llvm rejects outright.
+		hWriteLine( "%FBUSTRING = type { i16*, i64, i64 }" )
 	else
 		hWriteLine( "%FBSTRING = type { i8*, i32, i32 }" )
+		hWriteLine( "%FBUSTRING = type { i16*, i32, i32 }" )
 	end if
 
 	ctx.section = SECTION_BODY

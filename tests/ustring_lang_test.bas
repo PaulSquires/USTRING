@@ -19,6 +19,45 @@ sub chk( byref nm as string, byval got as longint, byval want as longint )
 	end if
 end sub
 
+type URec
+    n as integer
+    s as ustring
+    t as ustring
+end type
+
+sub churnUDT()
+    for i as integer = 1 to 20000
+        dim as URec q
+        q.s = "abcdefghij"
+        q.t = q.s + q.s
+    next
+end sub
+
+sub churnUArray()
+    for i as integer = 1 to 20000
+        dim as ustring a(1 to 4)
+        a(1) = "wwww" : a(2) = "xxxx" : a(3) = "yyyy" : a(4) = "zzzz"
+    next
+end sub
+
+sub churnUDyn()
+    for i as integer = 1 to 5000
+        redim as ustring d(0 to 9)
+        for j as integer = 0 to 9
+            d(j) = "0123456789"
+        next
+        erase d
+    next
+end sub
+
+sub churnUBoth()
+    for i as integer = 1 to 5000
+        dim as URec v(1 to 3)
+        v(1).s = "aaaa" : v(2).s = "bbbb" : v(3).s = "cccc"
+    next
+end sub
+
+
 sub chks( byref nm as string, byref got as ustring, byref want as ustring )
     g_run += 1
     if( got <> want ) then
@@ -451,6 +490,52 @@ chks( "STR -> ustring", ist, "42" )
 dim as ustring iw : iw = wchr(233)
 chks( "WCHR builds a codepoint", iw, "é" )
 chk ( "STRPTR is non-null", cint(strptr(ia) <> 0), -1 )
+
+'' ================================================================ PHASE 4
+'' Aggregates. A ustring field or array element owns a heap buffer, so the
+'' implicit ctor/copy/dtor and the array destructors all have to fire.
+
+dim as URec ar1
+ar1.s = "hello" : ar1.t = "wide"
+chk ( "UDT field len", len(ar1.s), 5 )
+chks( "UDT field content", ar1.s, "hello" )
+chk ( "UDT second field", len(ar1.t), 4 )
+
+'' whole-UDT copy must deep-copy the field, not alias the buffer
+dim as URec ar2
+ar2 = ar1
+ar2.s = ar2.s + "!"
+chk( "UDT copy is independent", len(ar1.s), 5 )
+chk( "UDT copy was modified", len(ar2.s), 6 )
+
+dim as ustring aarr(1 to 3)
+aarr(1) = "one" : aarr(2) = "two" : aarr(3) = "three"
+chk ( "array element", len(aarr(1)), 3 )
+chks( "array element content", aarr(3), "three" )
+
+redim as ustring adyn(0 to 2)
+adyn(0) = "aa" : adyn(1) = "bb" : adyn(2) = "cc"
+chk( "dynamic array element", len(adyn(1)), 2 )
+erase adyn
+redim adyn(0 to 1)
+adyn(0) = "z"
+chk( "after erase and redim", len(adyn(0)), 1 )
+
+'' Leak stress. A missing destructor shows up here as descriptor-pool
+'' exhaustion (later calls silently return length 0) or as unbounded growth.
+churnUDT()
+chk( "20000 UDT scopes", 1, 1 )
+churnUArray()
+chk( "20000 array scopes", 1, 1 )
+churnUDyn()
+chk( "5000 dynamic redim/erase cycles", 1, 1 )
+churnUBoth()
+chk( "5000 UDT-array scopes", 1, 1 )
+
+'' the pool must still be usable afterwards -- this is what catches a leak
+dim as URec apost
+apost.s = "still works"
+chk( "descriptor pool not exhausted", len(apost.s), 11 )
 
 print g_run; " checks,"; g_fail; " failed"
 if( g_fail <> 0 ) then

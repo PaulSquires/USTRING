@@ -266,7 +266,46 @@ straight to a C function, so their signature is fixed and cannot carry the
 
 **Phase 3 is complete.**
 
+## Phase 4 — aggregates (done), targets (partial)
+
+UDT fields, fixed arrays and dynamic arrays all work, including deep copy: the
+implicit ctor/copy-assign/dtor are generated for any UDT holding a ustring, and
+`fb_ArrayDestructUStr` / `fb_ArrayUStrErase` destroy array elements.
+
+**Two leaks were found and fixed**, both of which compiled and ran fine:
+
+1. **The generated UDT destructor was emitted but EMPTY.** `hCallFieldDtor()`
+   handled `FB_DATATYPE_STRING` but not `USTRING`, so every UDT holding a
+   ustring leaked its field's buffer on every scope exit.
+2. **Array scope exit emitted no destruction at all.** `rtlArrayErase`/the clear
+   path had no ustring branch, so every element leaked.
+
+Verified two ways: a descriptor-pool stress (20000 UDT scopes, 20000 array
+scopes, 5000 redim/erase cycles, 5000 UDT-array scopes — a leak shows up as pool
+exhaustion, which reads as length 0 rather than as a crash), and
+`tests/ustring_memcheck.bas`, which allocates ~40 MB of ustring buffers across
+40000 iterations and measures the working set: **16 KB growth, flat**.
+
+### LLVM
+
+`%FBUSTRING = type { i16*, i64, i64 }` is now emitted. Previously the IR
+*referenced* the type without defining it, which llvm rejects outright.
+
+The IR still cannot be assembled here, but for a **pre-existing** reason now
+pinned down precisely: fbc 1.20's LLVM output uses an obsolete `llvm.memset`
+intrinsic signature that clang 21 rejects. A plain `STRING` program with no
+ustring anywhere fails identically, so this is an fbc-vs-clang version gap, not
+a ustring problem.
+
+### Targets
+
+Only win64 can be built and run here. The 32-bit path is verified as far as code
+generation goes — `-target win32` emits
+`typedef struct { uint16 *data; int32 len; int32 size; } FBUSTRING;`, a 12-byte
+descriptor, and computes `sizeof(ustring * 8)` as 16 — but cannot be linked
+(no 32-bit assembler installed). linux64, ARM, JS and DOS are untested.
+
 ## Later phases
 
-Phase 4 is aggregates and the remaining backends, Phase 5 I/O, Phase 6 upstream
-packaging.
+Phase 5 is I/O (`PRINT`, file read/write, and the console paths), Phase 6 is
+upstream packaging.
