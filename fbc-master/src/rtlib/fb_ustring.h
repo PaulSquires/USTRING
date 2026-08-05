@@ -260,4 +260,13 @@ FBCALL FBUSTRING   *fb_UStrConcatAU      ( FBUSTRING *dst, void *str1, ssize_t s
 FBCALL FBUSTRING   *fb_UStrConcatUA      ( FBUSTRING *dst, void *str1, ssize_t str1_size, void *str2, ssize_t str2_size );
 FBCALL FBUSTRING   *fb_UStrAllocTempResult( FBUSTRING *src );
 
+/* -------------------------------------------- wstring <-> ustring conversion
+ * FB_WCHAR is wchar_t, so this is a no-op copy on Windows (both UTF-16) and a
+ * real re-encoding on Linux (UTF-32). See ustr_convw.c.
+ */
+FBCALL void        *fb_UStrAssignFromW   ( void *dst, ssize_t dst_size, const FB_WCHAR *src, int fill_rem, int is_init );
+FBCALL FB_WCHAR    *fb_UStrAssignToW     ( FB_WCHAR *dst, ssize_t dst_chars, void *src, ssize_t src_size );
+FBCALL FBUSTRING   *fb_WstrToUStr        ( const FB_WCHAR *src );
+FBCALL FB_WCHAR    *fb_UStrToWstr        ( void *src, ssize_t src_size );
+
 #endif /*__FB_USTRING_H__*/

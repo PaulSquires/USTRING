@@ -93,6 +93,7 @@ declare function hMakeParamDesc _
 		( /'FB_WARNINGMSG_EXPECTEDDIGIT             '/ 1, @"Expected digit" ), _
 		( /'FB_WARNINGMSG_UPCASTDISCARDSINITIALIZER '/ 1, @"Up-casting discards initializer(s)" ), _
 		( /'FB_WARNINGMSG_BYREFTEMPVAR              '/ 2, @"Suspicious address expression passed to BYREF parameter" ), _
+		( /'FB_WARNINGMSG_USTRTOWSTRCOPY            '/ 2, @"USTRING copied to a temporary WSTRING; on this target wchar_t is not 16-bit, so this is not free" ), _
 		( /'FB_WARNINGMSG_MISSINGANDROIDSYSROOT     '/ 1, @"GCC/Clang didn't provide a proper sysroot. You probably have to pass fbc an argument of the form '-sysroot $NDK/platforms/android-$API/arch-$ARCH'" ), _
 		( /'FB_WARNINGMSG_INVALIDUNICODESEQUENCE    '/ 2, @"Invalid or truncated unicode escape sequence" ), _
 		( /'FB_WARNINGMSG_SURROGATEPAIR             '/ 1, @"Surrogate or surrogate pair in unicode literal" ), _

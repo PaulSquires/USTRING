@@ -89,13 +89,18 @@ end function
 private function hAllocTempUString _
 	( _
 		byval parent as ASTNODE ptr, _
-		byval n as ASTNODE ptr _
+		byval n as ASTNODE ptr, _
+		byval copyback as integer _
 	) as ASTNODE ptr
 
 	dim as FBSYMBOL ptr temp = any
 
 	temp = symbAddTempVar( FB_DATATYPE_USTRING )
 	astDtorListAdd( temp )
+
+	if( copyback ) then
+		hAddToCopyBackList( parent, temp, n )
+	end if
 
 	'' temp ustring = src (rtlUStrAssign converts if src is narrow)
 	function = astNewLINK( _
@@ -286,6 +291,31 @@ private sub hStrArgToStrPtrParam _
 			n->l = hAllocTempWstrPtr( parent, n->l )
 		else
 			n->l = astNewADDROF( n->l )
+		end if
+
+	case FB_DATATYPE_USTRING
+		''
+		'' THE ASYMMETRY THE WHOLE TYPE WAS DESIGNED AROUND.
+		''
+		'' A ustring is UTF-16 on every target. Where wchar_t is also 16 bits
+		'' (Windows) the descriptor's data pointer IS a valid WSTRING PTR, so
+		'' this costs nothing -- just reinterpret it, exactly as
+		'' astBuildStrPtr() does for STRING -> ZSTRING PTR.
+		''
+		'' Where wchar_t is wider (Linux, 32 bits) the text has to be re-encoded
+		'' into a fresh buffer. That is orders of magnitude more expensive, and
+		'' it is INVISIBLE to anyone developing on Windows -- so it warns rather
+		'' than quietly costing a copy per call.
+		''
+		if( typeGetSize( FB_DATATYPE_WCHAR ) = 2 ) then
+			if( astIsCALL( n->l ) ) then
+				'' a result is a pooled temp; copy it so it outlives the call
+				n->l = hAllocTempUString( parent, n->l, FALSE )
+			end if
+			n->l = astBuildUStrPtr( n->l )
+		else
+			errReportWarn( FB_WARNINGMSG_USTRTOWSTRCOPY )
+			n->l = hAllocTempWstrPtr( parent, rtlUStrToWstr( n->l ) )
 		end if
 
 	end select
@@ -612,6 +642,23 @@ private function hCheckUStrParam _
 	dim as integer argdtype = astGetDatatype( n->l )
 
 	dim as integer pass_asis = FALSE
+	dim as integer copyback = FALSE
+
+	'' Decided BEFORE any conversion below: astNewUStrConv() replaces the
+	'' argument with a CALL, and testing astIsCALL() afterwards would always
+	'' say "function result, nothing to write back to" and silently disable
+	'' copy-back for every converted argument.
+	if( symbGetParamMode( param ) = FB_PARAMMODE_BYREF ) then
+		if( typeIsUstring( argdtype ) = FALSE ) then
+			'' Excluded for literals (nothing to write back to), DEREFs (no
+			'' way to know the target is writable or big enough) and CALL
+			'' results (discarded) -- the same exclusions the z/wstring
+			'' copy-back uses.
+			copyback = (astGetStrLitSymbol( n->l ) = NULL) and _
+				(not astIsDEREF( n->l )) and _
+				(not astIsCALL( n->l ))
+		end if
+	end if
 
 	select case as const( argdtype )
 	case FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR
@@ -624,13 +671,13 @@ private function hCheckUStrParam _
 			end if
 		end if
 
-	'' a narrow string? fold a literal now; a runtime one is converted by
-	'' rtlUStrAssign() inside the temp copy below
+	'' another string type? the temp copy below converts it -- but the ORIGINAL
+	'' expression has to reach hAddToCopyBackList(), so no conversion happens
+	'' here; rtlUStrAssign() inside hAllocTempUString() does it instead.
 	case FB_DATATYPE_STRING, FB_DATATYPE_FIXSTR, FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR
-		dim as ASTNODE ptr conv = astNewUStrLiteral( n->l )
-		if( conv <> NULL ) then
-			astDelTree( n->l )
-			n->l = conv
+		'' fold a literal now, since that is free and has no copy-back
+		if( copyback = FALSE ) then
+			n->l = astNewUStrConv( n->l )
 		end if
 
 	case else
@@ -641,7 +688,7 @@ private function hCheckUStrParam _
 	'' Everything else is copied into a temp ustring, which is what gives BYVAL
 	'' its by-value semantics and what converts a narrow argument.
 	if( pass_asis = FALSE ) then
-		n->l = hAllocTempUString( parent, n->l )
+		n->l = hAllocTempUString( parent, n->l, copyback )
 	end if
 
 	hBuildByrefArg( param, n )
@@ -999,7 +1046,7 @@ private function hCheckParam _
 		'' string just fine)
 		select case( arg_dtype )
 		case FB_DATATYPE_STRING, FB_DATATYPE_FIXSTR, _
-			FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR
+			FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR, FB_DATATYPE_USTRING
 			'' Rest will be handled below
 		case else
 			errReport( FB_ERRMSG_PARAMTYPEMISMATCHAT )
@@ -1014,7 +1061,7 @@ private function hCheckParam _
 	select case as const arg_dtype
 	'' string arg? check z- and w-string ptr params
 	case FB_DATATYPE_STRING, FB_DATATYPE_FIXSTR, _
-		FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR
+		FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR, FB_DATATYPE_USTRING
 
 		select case param_dtype
 		'' zstring ptr / zstring param?
@@ -1023,6 +1070,10 @@ private function hCheckParam _
 			case FB_DATATYPE_WCHAR
 				'' if it's a wstring param, convert..
 				n->l = rtlToStr( n->l, FALSE )
+			case FB_DATATYPE_USTRING
+				'' a ustring's units are 16-bit, so there is no byte
+				'' buffer to point at -- encode to UTF-8 first
+				n->l = rtlUStrToStr( n->l )
 			case FB_DATATYPE_FIXSTR
 				'' if it's a fixed length string, make a copy
 				'' because STRING*N is not guaranteed to have
@@ -1032,8 +1083,12 @@ private function hCheckParam _
 
 		'' wstring ptr / wstring?
 		case typeAddrOf( FB_DATATYPE_WCHAR ), FB_DATATYPE_WCHAR
-			'' if it's not a wstring param, convert..
-			if( arg_dtype <> FB_DATATYPE_WCHAR ) then
+			'' A ustring is left alone here: hStrArgToStrPtrParam() below
+			'' either reinterprets its buffer (free, where wchar is 16-bit)
+			'' or re-encodes it with a warning.
+			if( arg_dtype = FB_DATATYPE_USTRING ) then
+				'' nothing to do
+			elseif( arg_dtype <> FB_DATATYPE_WCHAR ) then
 				n->l = rtlToWstr( n->l )
 			end if
 

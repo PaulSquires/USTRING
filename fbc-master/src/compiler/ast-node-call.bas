@@ -157,7 +157,14 @@ private sub hCopyStringsBack( byval f as ASTNODE ptr )
 	n = f->call.strtail
 	do while( n <> NULL )
 
-		t = rtlStrAssign( n->srctree, astNewVAR( n->sym ) )
+		'' A ustring temp must go back through the ustring assignment, which
+		'' re-encodes to whatever the original variable is. rtlStrAssign() would
+		'' copy UTF-16 units into a byte buffer.
+		if( symbGetType( n->sym ) = FB_DATATYPE_USTRING ) then
+			t = rtlUStrAssign( n->srctree, astNewVAR( n->sym ) )
+		else
+			t = rtlStrAssign( n->srctree, astNewVAR( n->sym ) )
+		end if
 		astLoad( t )
 		astDelNode( t )
 

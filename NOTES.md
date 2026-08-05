@@ -162,10 +162,40 @@ plausible-looking output:
    narrow operand was appended as raw code units: `"he"` became U+6568.
    `hMultStrConcatAssign()` decodes it first.
 
-Still owed in Phase 2: `WSTRING` interop (including the Windows free-reinterpret
-vs Linux materialize-and-warn asymmetry), overload resolution between the three
-string types, and the copy-back list for narrow arguments modified through a
-ustring parameter.
+### wstring interop, overloads, copy-back
+
+**`WSTRING` ↔ `USTRING`** in both directions, plus mixed concatenation and
+comparison. The runtime branches on `sizeof(FB_WCHAR)`, so it is a copy where
+wchar_t is 16 bits and a real UTF-16 ↔ UTF-32 re-encode where it is 32.
+
+**The asymmetry the type was designed around** now shows up where it matters —
+passing a ustring to a `WSTRING PTR` parameter:
+
+```c
+TAKEPTR( (uint16*)*(uint16**)&U$0 );   // Windows: pure reinterpret, no call
+```
+
+Zero conversion calls. Where wchar_t is wider there is no pointer to hand out,
+so the compiler re-encodes **and warns** (`FB_WARNINGMSG_USTRTOWSTRCOPY`) — the
+cost is invisible to anyone developing on Windows otherwise.
+
+`USTRING` → `ZSTRING PTR` is deliberately a *mismatch* rather than a silent
+conversion: a pointer needs a buffer of the right element width, and a ustring's
+is 16-bit.
+
+**Overload resolution.** All three string types share `FB_DATACLASS_STRING`, so
+every call with more than one of them in scope was ambiguous. Ranking added in
+`symbCalcArgMatch`: an exact family match outranks a cross-family one, a zstring
+literal prefers `STRING`, and a wstring prefers `USTRING` (both are UTF-16, so
+nothing is lost).
+
+**Copy-back.** `BYREF` through a converting parameter writes the result back, or
+`BYREF` is a lie for every non-ustring argument. The subtle part: the decision
+has to be made *before* the conversion runs, because the conversion replaces the
+argument with a CALL and the `astIsCALL` exclusion would then disable copy-back
+for exactly the arguments that need it.
+
+**Phase 2 is complete.**
 
 ## Later phases
 

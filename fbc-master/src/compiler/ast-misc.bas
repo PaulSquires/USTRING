@@ -709,9 +709,18 @@ function astUpdStrConcat( byval n as ASTNODE ptr ) as ASTNODE ptr
 			dim as integer ldtype = astGetDataType( l ), rdtype = astGetDataType( r )
 			if( typeIsUstring( astGetDataType( n ) ) ) then
 				if( typeIsUstring( ldtype ) <> typeIsUstring( rdtype ) ) then
-					'' one operand is narrow: decode it rather than letting a
-					'' byte buffer be read as UTF-16
-					function = rtlUStrConcatMixed( l, ldtype, r, rdtype )
+					'' A WSTRING operand needs re-encoding, not UTF-8 decoding,
+					'' so convert it and fall into the plain concat. Only a
+					'' genuinely narrow operand takes the mixed path, which
+					'' avoids one temp by decoding straight into the result.
+					if( (typeGet( ldtype ) = FB_DATATYPE_WCHAR) or _
+					    (typeGet( rdtype ) = FB_DATATYPE_WCHAR) ) then
+						l = astNewUStrConv( l ) : ldtype = astGetDataType( l )
+						r = astNewUStrConv( r ) : rdtype = astGetDataType( r )
+						function = rtlUStrConcat( l, ldtype, r, rdtype )
+					else
+						function = rtlUStrConcatMixed( l, ldtype, r, rdtype )
+					end if
 				else
 					function = rtlUStrConcat( l, ldtype, r, rdtype )
 				end if

@@ -874,8 +874,13 @@ function astNewBOP _
 	end if
 
 	'' wstrings?
-	if( (typeGet( ldtype ) = FB_DATATYPE_WCHAR) or _
-		(typeGet( rdtype ) = FB_DATATYPE_WCHAR) ) then
+	'' Not when the other operand is a ustring: that mix belongs to the ustring
+	'' branch below, which converts one side. Coming in here instead would try
+	'' to read a ustring descriptor as a wchar buffer.
+	dim as integer either_is_ustr = (typeIsUstring( ldtype ) or typeIsUstring( rdtype ))
+
+	if( ((typeGet( ldtype ) = FB_DATATYPE_WCHAR) or _
+		 (typeGet( rdtype ) = FB_DATATYPE_WCHAR)) and (either_is_ustr = FALSE) ) then
 
 		'' not both wstrings?
 		if( typeGetDtAndPtrOnly( ldtype ) <> typeGetDtAndPtrOnly( rdtype ) ) then
@@ -975,7 +980,9 @@ function astNewBOP _
 	        (rdclass = FB_DATACLASS_STRING) ) then
 
 		'' not both strings?
-		if( ldclass <> rdclass ) then
+		'' A wstring partnered with a ustring is allowed through: the ustring
+		'' path converts it. Otherwise only a zstring may partner a string.
+		if( (ldclass <> rdclass) and (either_is_ustr = FALSE) ) then
 			if( ldclass = FB_DATACLASS_STRING ) then
 				'' not a zstring?
 				if( typeGet( rdtype ) <> FB_DATATYPE_CHAR ) then
@@ -1047,13 +1054,8 @@ function astNewBOP _
 				'' Comparison has no mixed form of its own, so convert the
 				'' narrow side to a ustring temp and compare like with like.
 				if( typeIsUstring( ldtype ) <> typeIsUstring( rdtype ) ) then
-					if( typeIsUstring( ldtype ) ) then
-						r = rtlStrToUStr( r )
-						rdtype = astGetDataType( r )
-					else
-						l = rtlStrToUStr( l )
-						ldtype = astGetDataType( l )
-					end if
+					l = astNewUStrConv( l ) : ldtype = astGetDataType( l )
+					r = astNewUStrConv( r ) : rdtype = astGetDataType( r )
 				end if
 
 				l = rtlUStrCompare( l, ldtype, r, rdtype )

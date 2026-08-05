@@ -33,6 +33,10 @@
 #define FB_RTL_USTRCONCATAU             "fb_UStrConcatAU"
 #define FB_RTL_USTRCONCATUA             "fb_UStrConcatUA"
 #define FB_RTL_USTRALLOCTEMPRES         "fb_UStrAllocTempResult"
+#define FB_RTL_USTRASSIGNFROMW          "fb_UStrAssignFromW"
+#define FB_RTL_USTRASSIGNTOW            "fb_UStrAssignToW"
+#define FB_RTL_WSTR2USTR                "fb_WstrToUStr"
+#define FB_RTL_USTR2WSTR                "fb_UStrToWstr"
 
 #define FB_RTL_BOOL2STR                 "fb_BoolToStr"
 #define FB_RTL_INT2STR                  "fb_IntToStr"
@@ -882,6 +886,10 @@ enum FB_RTL_IDX
 	FB_RTL_IDX_USTRCONCATAU
 	FB_RTL_IDX_USTRCONCATUA
 	FB_RTL_IDX_USTRALLOCTEMPRES
+	FB_RTL_IDX_USTRASSIGNFROMW
+	FB_RTL_IDX_USTRASSIGNTOW
+	FB_RTL_IDX_WSTR2USTR
+	FB_RTL_IDX_USTR2WSTR
 
 	FB_RTL_INDEXES
 end enum
@@ -1065,6 +1073,9 @@ declare function rtlUStrConcatMixed _
 
 declare function rtlUStrAllocTempResult( byval expr as ASTNODE ptr ) as ASTNODE ptr
 declare function rtlStrToUStr( byval expr as ASTNODE ptr ) as ASTNODE ptr
+declare function rtlWstrToUStr( byval expr as ASTNODE ptr ) as ASTNODE ptr
+declare function rtlUStrAssignToW( byval dst as ASTNODE ptr, byval src as ASTNODE ptr ) as ASTNODE ptr
+declare function rtlUStrToWstr( byval expr as ASTNODE ptr ) as ASTNODE ptr
 declare function rtlUStrToStr( byval expr as ASTNODE ptr ) as ASTNODE ptr
 declare function rtlUStrDelete( byval expr as ASTNODE ptr ) as ASTNODE ptr
 declare function rtlUStrLen( byval expr as ASTNODE ptr ) as ASTNODE ptr

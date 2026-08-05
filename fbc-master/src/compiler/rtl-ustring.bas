@@ -209,6 +209,57 @@
 				( FB_DATATYPE_USTRING, FB_PARAMMODE_BYREF, FALSE ) _
 			} _
 		), _
+		/' function fb_UStrAssignFromW( byref dst as any, byval dst_size as const integer, _
+				byval src as const wstring ptr, byval fillrem as const long, _
+				byval is_init as const long ) as ustring '/ _
+		( _
+			@FB_RTL_USTRASSIGNFROMW, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			5, _
+			{ _
+				( FB_DATATYPE_VOID, FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeAddrOf( typeSetIsConst( FB_DATATYPE_WCHAR ) ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, TRUE, 0 ), _
+				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, TRUE, 0 ) _
+			} _
+		), _
+		/' function fb_UStrAssignToW( byval dst as wstring ptr, byval dst_chars as const integer, _
+				byref src as const any, byval src_size as const integer ) as wstring ptr '/ _
+		( _
+			@FB_RTL_USTRASSIGNTOW, NULL, _
+			typeAddrOf( FB_DATATYPE_WCHAR ), FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			4, _
+			{ _
+				( typeAddrOf( FB_DATATYPE_WCHAR ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' function fb_WstrToUStr( byval src as const wstring ptr ) as ustring '/ _
+		( _
+			@FB_RTL_WSTR2USTR, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			1, _
+			{ _
+				( typeAddrOf( typeSetIsConst( FB_DATATYPE_WCHAR ) ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' function fb_UStrToWstr( byref src as const any, byval src_size as const integer ) as wstring ptr '/ _
+		( _
+			@FB_RTL_USTR2WSTR, NULL, _
+			typeAddrOf( FB_DATATYPE_WCHAR ), FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			2, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
 		/' end of table '/ _
 		( _
 			NULL, NULL, _
@@ -250,6 +301,18 @@ function rtlUStrAssign _
 
 	ddtype = astGetDataType( dst )
 	sdtype = astGetDataType( src )
+
+	'' WSTRING on either side is resolved by converting that side first, then
+	'' falling into the ordinary path. Doing it here rather than adding two more
+	'' entry-point shapes keeps the wstring temp handling in the one place fbc
+	'' already gets it right.
+	if( typeGet( sdtype ) = FB_DATATYPE_WCHAR ) then
+		src = rtlWstrToUStr( src )
+		sdtype = astGetDataType( src )
+	elseif( typeGet( ddtype ) = FB_DATATYPE_WCHAR ) then
+		'' ustring -> wstring, bounded by the destination's declared capacity
+		return rtlUStrAssignToW( dst, src )
+	end if
 
 	'' Four combinations, because a ustring may be assigned from (or to) the
 	'' narrow world. The conversion entry points take is_init as an explicit
@@ -441,6 +504,96 @@ function rtlUStrAllocTempResult _
 	proc = astNewCALL( PROCLOOKUP( USTRALLOCTEMPRES ) )
 
 	if( astNewARG( proc, expr ) = NULL ) then exit function
+
+	function = proc
+
+end function
+
+'':::::
+'' u -> wstring destination.
+''
+'' Needs its own entry point rather than going through rtlWstrAssign(): the
+'' destination's capacity has to be passed so the copy can be clamped, and the
+'' runtime re-encodes (a copy where wchar is 16 bits, UTF-16 -> UTF-32 where it
+'' is 32).
+function rtlUStrAssignToW _
+	( _
+		byval dst as ASTNODE ptr, _
+		byval src as ASTNODE ptr _
+	) as ASTNODE ptr
+
+	dim as ASTNODE ptr proc = any
+	dim as integer sdtype = any
+	dim as longint dlgt = any, slgt = any
+
+	function = NULL
+
+	proc = astNewCALL( PROCLOOKUP( USTRASSIGNTOW ) )
+
+	'' capacity INCLUDING the terminator, as rtlCalcStrLen() reports for WCHAR
+	dlgt = rtlCalcStrLen( dst, astGetDataType( dst ) )
+	if( astNewARG( proc, dst ) = NULL ) then exit function
+	if( astNewARG( proc, astNewCONSTi( dlgt ) ) = NULL ) then exit function
+
+	sdtype = astGetDataType( src )
+	slgt = rtlCalcStrLen( src, sdtype )
+	if( astNewARG( proc, src, sdtype ) = NULL ) then exit function
+	if( astNewARG( proc, astNewCONSTi( slgt ) ) = NULL ) then exit function
+
+	astSetType( proc, FB_DATATYPE_VOID, NULL )
+
+	function = proc
+
+end function
+
+'':::::
+'' Convert a wstring expression to a ustring temp.
+''
+'' On a target where wchar is 16 bits this is a straight copy; on Linux it is a
+'' UTF-32 -> UTF-16 re-encode. The compiler cannot tell the two apart here --
+'' the runtime branches on sizeof(FB_WCHAR).
+function rtlWstrToUStr _
+	( _
+		byval expr as ASTNODE ptr _
+	) as ASTNODE ptr
+
+	dim as ASTNODE ptr proc = any
+
+	function = NULL
+
+	proc = astNewCALL( PROCLOOKUP( WSTR2USTR ) )
+
+	'' byval src as wchar ptr -- let astNewARG() do the decay, as rtlWstrLen()
+	'' does; forcing the dtype here passes a WSTRING * N by value instead
+	if( astNewARG( proc, expr ) = NULL ) then exit function
+
+	function = proc
+
+end function
+
+'':::::
+'' Convert a ustring expression to a freshly allocated wchar buffer, which the
+'' caller must delete -- same contract as every other wstring-returning rtlib
+'' function.
+function rtlUStrToWstr _
+	( _
+		byval expr as ASTNODE ptr _
+	) as ASTNODE ptr
+
+	dim as ASTNODE ptr proc = any
+	dim as integer dtype = any
+	dim as longint lgt = any
+
+	function = NULL
+
+	dtype = astGetDataType( expr )
+
+	proc = astNewCALL( PROCLOOKUP( USTR2WSTR ) )
+
+	lgt = rtlCalcStrLen( expr, dtype )
+
+	if( astNewARG( proc, expr, dtype ) = NULL ) then exit function
+	if( astNewARG( proc, astNewCONSTi( lgt ) ) = NULL ) then exit function
 
 	function = proc
 

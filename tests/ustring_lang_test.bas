@@ -9,7 +9,7 @@
 '' See NOTES.md. Everything below is therefore about geometry, lifetime and the
 '' empty-string edges -- which is exactly where a descriptor type goes wrong.
 
-dim shared as integer g_run, g_fail
+dim shared as integer g_run, g_fail, g_ptrlen
 
 sub chk( byref nm as string, byval got as longint, byval want as longint )
 	g_run += 1
@@ -18,6 +18,27 @@ sub chk( byref nm as string, byval got as longint, byval want as longint )
 		print "FAIL "; nm; " got="; got; " want="; want
 	end if
 end sub
+
+'' -- phase 2b: wstring interop, overloads, copy-back ------------------
+
+sub wmodify( byref u as ustring )
+    u = u + "!"
+end sub
+
+sub wtakeptr( byval p as wstring ptr )
+    g_ptrlen = len(*p)
+end sub
+
+function opick overload ( byref s as string ) as integer
+    return 1
+end function
+function opick ( byref w as wstring ) as integer
+    return 2
+end function
+function opick ( byref u as ustring ) as integer
+    return 3
+end function
+
 
 function pmk( byref tail as ustring ) as ustring
     dim as ustring r = "x"
@@ -248,6 +269,69 @@ chk( "20000 discarded results, pool not exhausted", len(pmk(pt)), 3 )
 '' a narrow argument passed to a ustring parameter converts through UTF-8
 dim as string pns = "hi"
 chk( "narrow arg -> ustring param", ptakeref( pns ), 2 )
+
+'' ------------------------------------------------- wstring <-> ustring
+'' A wstring is UTF-16 where wchar_t is 16 bits and UTF-32 where it is 32.
+'' Both directions must preserve text either way.
+dim as wstring * 32 xw = wstr("hello")
+dim as ustring xu
+xu = xw
+chk( "WSTRING -> USTRING len", len(xu), 5 )
+chk( "WSTRING -> USTRING content", cint(xu = "hello"), cint(-1) )
+
+dim as wstring * 32 xw2
+xw2 = xu
+chk( "USTRING -> WSTRING len", len(xw2), 5 )
+
+dim as ustring xm
+xm = xu + xw
+chk( "ustring + wstring", len(xm), 10 )
+xm = xw + xu
+chk( "wstring + ustring", len(xm), 10 )
+chk( "ustring = wstring", cint(xu = xw), cint(-1) )
+
+'' An astral character is 2 ustring units. Round-tripping it through a
+'' wstring must not lose the pairing.
+dim as ustring xa = "𝄞"
+dim as wstring * 8 xwa
+xwa = xa
+dim as ustring xback
+xback = xwa
+chk( "astral survives ustring->wstring->ustring", len(xback), 2 )
+chk( "astral content preserved", cint(xback = xa), cint(-1) )
+
+'' ------------------------------------------------ overload resolution
+'' All three string types share FB_DATACLASS_STRING, so without explicit
+'' ranking every one of these calls is ambiguous.
+dim as string  os = "a"
+dim as wstring * 8 ow = wstr("a")
+dim as ustring ou = "a"
+chk( "string arg picks string ovl", opick(os), 1 )
+chk( "wstring arg picks wstring ovl", opick(ow), 2 )
+chk( "ustring arg picks ustring ovl", opick(ou), 3 )
+chk( "literal picks string ovl", opick("a"), 1 )
+
+'' ---------------------------------------------------------- copy-back
+'' BYREF through a converting parameter must write the result back, or
+'' BYREF is a lie for every non-ustring argument.
+dim as string cs = "abc"
+wmodify( cs )
+chk( "narrow arg copied back", len(cs), 4 )
+chk( "narrow copy-back content", cint(cs = "abc!"), cint(-1) )
+
+dim as wstring * 16 cw = wstr("xy")
+wmodify( cw )
+chk( "wstring arg copied back", len(cw), 3 )
+
+dim as ustring cu = "q"
+wmodify( cu )
+chk( "native ustring modified byref", len(cu), 2 )
+
+'' ------------------------------------------- ustring -> WSTRING PTR
+'' Where wchar_t is 16 bits this hands out the buffer with no conversion;
+'' where it is wider the compiler warns and re-encodes.
+wtakeptr( ou )
+chk( "ustring passed as wstring ptr", g_ptrlen, 1 )
 
 print g_run; " checks,"; g_fail; " failed"
 if( g_fail <> 0 ) then

@@ -1989,13 +1989,30 @@ private function hCalcTypesDiff _
 				'' string => zstring
 				return FB_OVLPROC_FULLMATCH - OvlMatchScore( 0, 1 )
 			case typeAddrOf( FB_DATATYPE_CHAR )
-				'' string => zstring ptr
+				'' string => zstring ptr.
+				'' NOT from a ustring: handing out a pointer requires a buffer
+				'' of the right element type, and a ustring's is 16-bit. Report
+				'' it as a mismatch so the caller converts explicitly, rather
+				'' than silently passing UTF-16 units to something expecting
+				'' bytes.
+				if( typeIsUstring( arg_dtype ) ) then
+					return FB_OVLPROC_NO_MATCH
+				end if
 				return FB_OVLPROC_FULLMATCH - OvlMatchScore( 0, 2 )
 			case FB_DATATYPE_WCHAR
-				'' string => wstring
+				'' string|ustring => wstring.
+				'' A ustring scores better here: it and wstring are both
+				'' UTF-16 sequences, so nothing is lost, whereas a narrow
+				'' string has to be decoded first.
+				if( typeIsUstring( arg_dtype ) ) then
+					return FB_OVLPROC_HALFMATCH - OvlMatchScore( 0, 2 )
+				end if
 				return FB_OVLPROC_HALFMATCH - OvlMatchScore( 0, 3 )
 			case typeAddrOf( FB_DATATYPE_WCHAR )
-				'' string => wstring ptr
+				'' string|ustring => wstring ptr
+				if( typeIsUstring( arg_dtype ) ) then
+					return FB_OVLPROC_HALFMATCH - OvlMatchScore( 0, 3 )
+				end if
 				return FB_OVLPROC_HALFMATCH - OvlMatchScore( 0, 4 )
 			end select
 
@@ -2030,18 +2047,39 @@ private function hCalcTypesDiff _
 		select case arg_dclass
 		'' okay if it's a fixed-len string
 		case FB_DATACLASS_STRING
-			function = FB_OVLPROC_FULLMATCH
+			'' STRING and USTRING share this dataclass but are NOT the same
+			'' type -- converting between them costs a UTF-8 transcode. Without
+			'' this split both overloads score FULLMATCH and every call with a
+			'' string and a ustring overload in scope is ambiguous.
+			if( typeIsUstring( param_dtype ) = typeIsUstring( arg_dtype ) ) then
+				function = FB_OVLPROC_FULLMATCH
+			else
+				function = FB_OVLPROC_HALFMATCH - OvlMatchScore( 0, 2 )
+			end if
 
 		'' integer if it's a z/wstring (no matter whether a
 		'' variable/literal or DEREF, it can all be treated as string)
 		case FB_DATACLASS_INTEGER
 			select case arg_dtype
 			case FB_DATATYPE_CHAR
-				'' zstring => string
-				function = FB_OVLPROC_FULLMATCH - OvlMatchScore( 0, 2 )
+				'' zstring => string|ustring.
+				'' A zstring literal is narrow text, so STRING is the natural
+				'' home; USTRING scores one step worse or "f(""a"")" is
+				'' ambiguous whenever both overloads exist.
+				if( typeIsUstring( param_dtype ) ) then
+					function = FB_OVLPROC_FULLMATCH - OvlMatchScore( 0, 3 )
+				else
+					function = FB_OVLPROC_FULLMATCH - OvlMatchScore( 0, 2 )
+				end if
 			case FB_DATATYPE_WCHAR
-				'' wstring => string
-				function = FB_OVLPROC_HALFMATCH - OvlMatchScore( 0, 2 )
+				'' wstring => string|ustring.
+				'' The other way round: both are UTF-16, so USTRING is the
+				'' lossless target and outranks STRING.
+				if( typeIsUstring( param_dtype ) ) then
+					function = FB_OVLPROC_HALFMATCH - OvlMatchScore( 0, 1 )
+				else
+					function = FB_OVLPROC_HALFMATCH - OvlMatchScore( 0, 2 )
+				end if
 			end select
 
 		end select

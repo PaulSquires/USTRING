@@ -1152,3 +1152,63 @@ function astNewUStrLiteral( byval expr as ASTNODE ptr ) as ASTNODE ptr
 
 	function = astNewVAR( usym )
 end function
+
+'' Make any string expression into a ustring.
+''
+'' Three cases, in cost order: a compile-time literal is folded (free), a wstring
+'' is re-encoded (a copy on Windows, a real UTF-32 -> UTF-16 conversion on
+'' Linux), and a narrow string is decoded from UTF-8.
+''
+'' Every site that mixes a ustring with another string type goes through here, so
+'' none of them has to know which of the three it is holding.
+function astNewUStrConv( byval expr as ASTNODE ptr ) as ASTNODE ptr
+	dim as integer dtype = any
+	dim as ASTNODE ptr lit = any
+
+	if( expr = NULL ) then
+		return NULL
+	end if
+
+	dtype = astGetDataType( expr )
+
+	if( typeIsUstring( dtype ) ) then
+		return expr
+	end if
+
+	lit = astNewUStrLiteral( expr )
+	if( lit <> NULL ) then
+		astDelTree( expr )
+		return lit
+	end if
+
+	if( typeGet( dtype ) = FB_DATATYPE_WCHAR ) then
+		return rtlWstrToUStr( expr )
+	end if
+
+	function = rtlStrToUStr( expr )
+end function
+
+'' The ustring twin of astBuildStrPtr(): reinterpret the descriptor as a pointer
+'' to its data.
+''
+'' The element type is WCHAR rather than CHAR, and this is only valid where a
+'' wchar is 16 bits -- the caller checks. Where it is not, the text has to be
+'' re-encoded instead and there is no pointer to hand out.
+function astBuildUStrPtr( byval lhs as ASTNODE ptr ) as ASTNODE ptr
+	dim as ASTNODE ptr expr = any
+	dim as integer dtype = any
+
+	assert( typeGetSize( FB_DATATYPE_WCHAR ) = 2 )
+
+	'' *cast( [const] wstring const ptr ptr, @lhs )
+	dtype = FB_DATATYPE_WCHAR
+	if( typeIsConst( lhs->dtype ) ) then
+		dtype = typeSetIsConst( dtype )
+	end if
+	dtype = typeSetIsConst( typeAddrOf( dtype ) )
+	dtype = typeAddrOf( dtype )
+
+	expr = astNewDEREF( astNewCONV( dtype, NULL, astNewADDROF( lhs ), AST_CONVOPT_DONTWARNCONST ) )
+
+	return expr
+end function

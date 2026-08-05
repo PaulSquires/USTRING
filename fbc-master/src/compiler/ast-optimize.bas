@@ -1581,7 +1581,7 @@ private function hMultStrConcatAssign _
 		'' appending a narrow operand as raw code units silently reads two
 		'' bytes as one unit ("he" becomes U+6568). Decode it first.
 		if( typeIsUstring( astGetDataType( src ) ) = FALSE ) then
-			src = rtlStrToUStr( src )
+			src = astNewUStrConv( src )
 		end if
 		function = rtlUStrConcatAssign( dst, src )
 	elseif( typeGet( dtype ) = FB_DATATYPE_WCHAR ) then

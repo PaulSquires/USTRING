@@ -271,6 +271,15 @@ function astCheckASSIGN _
 	if( (ldclass = FB_DATACLASS_STRING) or _
 		(rdclass = FB_DATACLASS_STRING) ) then
 
+		'' ustring involved? Leave the operands alone -- hCheckStringOps()
+		'' would rewrite a wstring operand into the ANSI world (via
+		'' fb_WstrAssignToA), losing anything outside the current codepage
+		'' before the ustring path ever sees it. The conversion is chosen in
+		'' rtlUStrAssign() instead.
+		if( typeIsUstring( ldtype ) or typeIsUstring( rdtype ) ) then
+			return TRUE
+		end if
+
 		'' both not strings?
 		if( ldclass <> rdclass ) then
 			if( hCheckStringOps( l, ldclass, r, rdclass ) = FALSE ) then
@@ -616,21 +625,36 @@ function astNewASSIGN _
 			if( (options and AST_OPOPT_ISINI) <> 0 ) then
 				return rtlUStrAssign( l, r, TRUE )
 			end if
-		end if
 
-		'' both not strings?
-		if( ldclass <> rdclass ) then
-			if( hCheckStringOps( l, ldclass, r, rdclass ) = FALSE ) then
-				exit function
+			'' A MIXED assignment is emitted right here. Deferring only pays off
+			'' for a pure-ustring tree, where the optimizer can rewrite
+			'' "u = a + b + c" into in-place appends; a conversion has nothing
+			'' to gain and the deferred node would carry mismatched dtypes.
+			if( typeIsUstring( ldtype ) <> typeIsUstring( rdtype ) ) then
+				return rtlUStrAssign( l, r, FALSE )
 			end if
 
-			return rtlStrAssign( l, r, (options and AST_OPOPT_ISINI) <> 0 )
-		end if
+			'' A pure ustring assignment falls through to the bottom of this
+			'' function, which builds the ASSIGN node. It must NOT reach the
+			'' narrow handling below: hCheckStringOps() would rewrite a wstring
+			'' operand into the ANSI world and rtlStrAssign() would then treat
+			'' a UTF-16 buffer as bytes.
+		else
 
-		'' otherwise, don't do any assignment by now to allow optimizations..
-		if( (options and AST_OPOPT_ISINI) <> 0 ) then
-			'' unless it's an initialization
-			return rtlStrAssign( l, r, TRUE )
+			'' both not strings?
+			if( ldclass <> rdclass ) then
+				if( hCheckStringOps( l, ldclass, r, rdclass ) = FALSE ) then
+					exit function
+				end if
+
+				return rtlStrAssign( l, r, (options and AST_OPOPT_ISINI) <> 0 )
+			end if
+
+			'' otherwise, don't do any assignment by now to allow optimizations..
+			if( (options and AST_OPOPT_ISINI) <> 0 ) then
+				'' unless it's an initialization
+				return rtlStrAssign( l, r, TRUE )
+			end if
 		end if
 
 	'' UDT's?
