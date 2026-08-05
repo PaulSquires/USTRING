@@ -314,4 +314,10 @@ FBCALL void         fb_UStrLset          ( void *dst, ssize_t dst_size, void *sr
 FBCALL void         fb_UStrRset          ( void *dst, ssize_t dst_size, void *src, ssize_t src_size );
 FBCALL void         fb_UStrSwap          ( void *str1, ssize_t size1, void *str2, ssize_t size2 );
 
+/* PRINT / WRITE. The encoding depends on where the output goes -- see
+ * ustr_print.c: a real Windows console takes the wide path, everything else
+ * (files, redirected output, non-Windows consoles) gets UTF-8. */
+FBCALL void         fb_PrintUStr         ( int fnum, FBUSTRING *src, int mask );
+FBCALL void         fb_WriteUStr         ( int fnum, FBUSTRING *src, int mask );
+
 #endif /*__FB_USTRING_H__*/

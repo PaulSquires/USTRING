@@ -251,6 +251,7 @@
 #define FB_RTL_PRINTDOUBLE              "fb_PrintDouble"
 #define FB_RTL_PRINTSTR                 "fb_PrintString"
 #define FB_RTL_PRINTWSTR                "fb_PrintWstr"
+#define FB_RTL_PRINTUSTR                "fb_PrintUStr"
 
 #define FB_RTL_LPRINTVOID               "fb_LPrintVoid"
 #define FB_RTL_LPRINTBOOL               "fb_LPrintBool"
@@ -284,6 +285,7 @@
 #define FB_RTL_WRITEDOUBLE              "fb_WriteDouble"
 #define FB_RTL_WRITESTR                 "fb_WriteString"
 #define FB_RTL_WRITEWSTR                "fb_WriteWstr"
+#define FB_RTL_WRITEUSTR                "fb_WriteUStr"
 
 #define FB_RTL_PRINTUSGINIT             "fb_PrintUsingInit"
 #define FB_RTL_PRINTUSGSTR              "fb_PrintUsingStr"
@@ -677,6 +679,7 @@ enum FB_RTL_IDX
 	FB_RTL_IDX_PRINTDOUBLE
 	FB_RTL_IDX_PRINTSTR
 	FB_RTL_IDX_PRINTWSTR
+	FB_RTL_IDX_PRINTUSTR
 
 	FB_RTL_IDX_LPRINTVOID
 	FB_RTL_IDX_LPRINTBOOL
@@ -710,6 +713,7 @@ enum FB_RTL_IDX
 	FB_RTL_IDX_WRITEDOUBLE
 	FB_RTL_IDX_WRITESTR
 	FB_RTL_IDX_WRITEWSTR
+	FB_RTL_IDX_WRITEUSTR
 
 	FB_RTL_IDX_PRINTUSGINIT
 	FB_RTL_IDX_PRINTUSGSTR

@@ -366,6 +366,30 @@ function cLineInputStmt _
 	case FB_DATATYPE_WCHAR
 		function = rtlFileLineInputWstr( isfile, filestrexpr, dstexpr, maxlenexpr, addquestion, addnewline )
 
+	case FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR
+		''
+		'' Read into a temp STRING and then convert.
+		''
+		'' Files are UTF-8 (that is what PRINT # writes), so reading bytes and
+		'' decoding is both correct and free of new runtime code -- the whole
+		'' narrow LINE INPUT path, including the maxlen and prompt handling, is
+		'' reused as-is.
+		''
+		scope
+			dim as FBSYMBOL ptr tmp = symbAddTempVar( FB_DATATYPE_STRING )
+			astDtorListAdd( tmp )
+
+			astAdd( astBuildTempVarClear( tmp ) )
+
+			if( rtlFileLineInput( isfile, filestrexpr, astNewVAR( tmp ), _
+			                      maxlenexpr, addquestion, addnewline ) = FALSE ) then
+				return FALSE
+			end if
+
+			astAdd( rtlUStrAssign( dstexpr, astNewVAR( tmp ) ) )
+			function = TRUE
+		end scope
+
 	'' not a string?
 	case else
 		astDelTree( dstexpr )

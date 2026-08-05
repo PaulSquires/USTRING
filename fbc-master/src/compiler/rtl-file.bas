@@ -2072,6 +2072,26 @@ function rtlFileInputGet _
 	args = 1
 	dtype = astGetDataType( dstexpr )
 
+	'' ustring? Read into a temp STRING and convert.
+	''
+	'' A file written by PRINT # is UTF-8, so decoding bytes is both correct and
+	'' free of new runtime code: the narrow INPUT path, including its token
+	'' splitting and quoting rules, is reused unchanged.
+	if( typeIsUstring( dtype ) ) then
+		dim as FBSYMBOL ptr tmp = symbAddTempVar( FB_DATATYPE_STRING )
+		astDtorListAdd( tmp )
+
+		astAdd( astBuildTempVarClear( tmp ) )
+
+		if( rtlFileInputGet( astNewVAR( tmp ) ) = FALSE ) then
+			exit function
+		end if
+
+		astAdd( rtlUStrAssign( dstexpr, astNewVAR( tmp ) ) )
+
+		return TRUE
+	end if
+
 	select case as const typeGet( dtype )
 	case FB_DATATYPE_FIXSTR, FB_DATATYPE_STRING, FB_DATATYPE_CHAR
 		f = PROCLOOKUP( INPUTSTR )

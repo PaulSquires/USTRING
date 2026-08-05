@@ -177,6 +177,18 @@
 				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, FALSE ) _
 			} _
 		), _
+		/' sub fb_PrintWstr( byval fnum as const long = 0, byval x as const wstring ptr, byval mask as const long ) '/ _
+		( _
+			@FB_RTL_PRINTUSTR, NULL, _
+			FB_DATATYPE_VOID, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			3, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, TRUE, 0 ), _
+				( typeSetIsConst( FB_DATATYPE_USTRING ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
 		/' sub fb_LPrintVoid( byval fnum as const long = 0, byval mask as const long ) '/ _
 		( _
 			@FB_RTL_LPRINTVOID, NULL, _
@@ -533,6 +545,17 @@
 				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, FALSE ) _
 			} _
 		), _
+		( _
+			@FB_RTL_WRITEUSTR, NULL, _
+			FB_DATATYPE_VOID, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			3, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, TRUE, 0 ), _
+				( typeSetIsConst( FB_DATATYPE_USTRING ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
 		/' function fb_PrintUsingInit( byref fmtstr as const string ) as long '/ _
 		( _
 			@FB_RTL_PRINTUSGINIT, NULL, _
@@ -719,6 +742,16 @@ function rtlPrint _
 				f = PROCLOOKUP( LPRINTWSTR )
 			else
 				f = PROCLOOKUP( PRINTWSTR )
+			end if
+
+		case FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR
+			'' LPRINT has no ustring form; a printer is a byte device, so the
+			'' UTF-8 encoding is the right thing there anyway
+			if( islprint ) then
+				expr = rtlUStrToStr( expr )
+				f = PROCLOOKUP( LPRINTSTR )
+			else
+				f = PROCLOOKUP( PRINTUSTR )
 			end if
 
 		case FB_DATATYPE_BOOLEAN
@@ -925,6 +958,9 @@ function rtlWrite _
 
 		case FB_DATATYPE_WCHAR
 			f = PROCLOOKUP( WRITEWSTR )
+
+		case FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR
+			f = PROCLOOKUP( WRITEUSTR )
 
 		case FB_DATATYPE_BOOLEAN
 			f = PROCLOOKUP( WRITEBOOL )

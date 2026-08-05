@@ -305,7 +305,46 @@ generation goes — `-target win32` emits
 descriptor, and computes `sizeof(ustring * 8)` as 16 — but cannot be linked
 (no 32-bit assembler installed). linux64, ARM, JS and DOS are untested.
 
+## Phase 5 — I/O
+
+`PRINT`, `PRINT #`, `WRITE`, `WRITE #`, `LINE INPUT #` and `INPUT #`.
+
+### Where the output goes decides the encoding
+
+| Destination | Path |
+|---|---|
+| real Windows console | the wide path — the OS renders UTF-16 directly, and fbc's cursor tracking (`POS`, `LOCATE`) stays correct |
+| files, redirected output, non-Windows consoles | **UTF-8** |
+
+The second row is the point. A ustring written to a file must produce a portable
+file on every platform. The existing wstring path writes **raw UTF-16 bytes**
+when output is redirected (`win32/io_printbuff_wstr.c`), producing a file no
+other tool reads as text — a portable string type cannot behave that way.
+
+Verified by reading the bytes back: `"héllo €"` lands on disk as
+`68 C3 A9 6C 6C 6F 20 E2 82 AC`, and an astral character encodes to its 4 UTF-8
+bytes rather than to a surrogate pair.
+
+### Input reuses the narrow path
+
+`LINE INPUT #` and `INPUT #` read into a temp `STRING` and convert. Since
+`PRINT #` writes UTF-8, decoding bytes is both correct and free of new runtime
+code — the whole narrow path, including maxlen handling, token splitting and
+quoting rules, is reused unchanged.
+
+### What this does NOT do
+
+The existing **wstring** console bugs are untouched: `WriteConsoleOutputW` uses
+one `CHAR_INFO` per UTF-16 unit so astral characters mis-render, and the Linux
+path dumps raw UTF-32 when the console driver is uninitialised. Those are
+pre-existing `WSTRING` defects. Fixing them would change existing wstring
+behaviour, which is outside the additive scope this patch keeps to — and ustring
+routes around them rather than inheriting them.
+
+`OPEN ... ENCODING` is not wired for ustring: a ustring file is UTF-8 by
+construction, so the encoding option has nothing to add yet. `PRINT USING` and
+the graphics `DRAW STRING` path are also not wired.
+
 ## Later phases
 
-Phase 5 is I/O (`PRINT`, file read/write, and the console paths), Phase 6 is
-upstream packaging.
+Phase 6 is upstream packaging.
