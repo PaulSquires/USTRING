@@ -346,7 +346,7 @@ sub symbProcRecalcRealType( byval proc as FBSYMBOL ptr )
 
 	select case( typeGetDtAndPtrOnly( dtype ) )
 	'' string?
-	case FB_DATATYPE_STRING, FB_DATATYPE_WCHAR
+	case FB_DATATYPE_STRING, FB_DATATYPE_WCHAR, FB_DATATYPE_USTRING
 		'' It's actually a pointer to a string descriptor,
 		'' or in case of wstring, a pointer to a wchar buffer.
 		dtype = typeAddrOf( dtype )

@@ -115,6 +115,8 @@ function astBuildVarDtorCall overload _
 
 	if( astGetDataType( varexpr ) = FB_DATATYPE_STRING ) then
 		function = rtlStrDelete( varexpr )
+	elseif( astGetDataType( varexpr ) = FB_DATATYPE_USTRING ) then
+		function = rtlUStrDelete( varexpr )
 	elseif( typeHasDtor( varexpr->dtype, varexpr->subtype ) ) then
 		function = astBuildDtorCall( varexpr->subtype, varexpr )
 	end if
@@ -141,6 +143,10 @@ function astBuildVarDtorCall overload _
 		'' dyn string?
 		case FB_DATATYPE_STRING
 			function = rtlStrDelete( astNewVAR( s ) )
+
+		'' dyn ustring?
+		case FB_DATATYPE_USTRING
+			function = rtlUStrDelete( astNewVAR( s ) )
 
 		'' wchar ptr marked as "dynamic wstring"?
 		case typeAddrOf( FB_DATATYPE_WCHAR )

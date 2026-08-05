@@ -2224,6 +2224,12 @@ declare function symbGetStrLength( byval sym as FBSYMBOL ptr ) as longint
 declare function symbGetWstrLength( byval sym as FBSYMBOL ptr ) as longint
 declare function symbGetUstrLength( byval sym as FBSYMBOL ptr ) as longint
 
+'' TRUE for either ustring form. Both are FB_DATACLASS_STRING, so a plain
+'' dataclass test cannot tell them from STRING/ZSTRING -- and treating a UTF-16
+'' buffer as bytes is silent corruption, so every string path that dispatches on
+'' the class has to ask this before it picks a runtime function.
+#define typeIsUstring( dt ) ( (typeGet( dt ) = FB_DATATYPE_USTRING) or (typeGet( dt ) = FB_DATATYPE_FIXUSTR) )
+
 #define symbGetFullType(s) s->typ
 #define symbGetType(s) typeGetDtAndPtrOnly( symbGetFullType( s ) )
 

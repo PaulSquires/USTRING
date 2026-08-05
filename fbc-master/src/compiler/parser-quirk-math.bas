@@ -60,6 +60,12 @@ private function hLen _
 	case FB_DATATYPE_STRING
 		return rtlStrLen( expr )
 
+	'' LEN( ustring ) counts CODE UNITS, matching [] indexing. An astral
+	'' character is a surrogate pair and so counts as 2 -- the same answer
+	'' WSTRING already gives on Windows.
+	case FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR
+		return rtlUStrLen( expr )
+
 	case FB_DATATYPE_CHAR
 		litsym = astGetStrLitSymbol( expr )
 		if( litsym = NULL ) then

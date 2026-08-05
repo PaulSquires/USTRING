@@ -1671,6 +1671,61 @@ private function hIsMultStrConcat _
 
 end function
 
+'' ustring assignment lowering.
+''
+'' The case that matters here is  u = u + x , which is what  u &= x  becomes.
+'' Turning it into fb_UStrConcatAssign() lets the destination grow in place
+'' under the geometric realloc policy; without it, every append allocates a
+'' fresh buffer and copies the whole accumulated string, so building a long
+'' ustring one piece at a time goes quadratic.
+private function hOptUStrAssignment _
+	( _
+		byval n as ASTNODE ptr, _
+		byval l as ASTNODE ptr, _
+		byval r as ASTNODE ptr _
+	) as ASTNODE ptr
+
+	dim as integer optimize = FALSE
+
+	'' is right side "l + expr", with l a plain var that does not also appear
+	'' on the right? (if it appeared on both sides, growing l in place would
+	'' change the operand mid-flight)
+	if( r->class = AST_NODECLASS_BOP ) then
+		if( r->op.op = AST_OP_ADD ) then
+			select case as const l->class
+			case AST_NODECLASS_VAR, AST_NODECLASS_IDX
+				if( astIsTreeEqual( l, r->l ) ) then
+					dim as FBSYMBOL ptr sym = astGetSymbol( l )
+					if( sym <> NULL ) then
+						if( symbIsParamVarBydescOrByref( sym ) = FALSE ) then
+							optimize = (astIsSymbolOnTree( sym, r->r ) = FALSE)
+						end if
+					end if
+				end if
+			end select
+		end if
+	end if
+
+	if( optimize ) then
+		''  =                concatassign
+		'' / \                  /  \
+		''u   +      =>        u    expr
+		''   / \
+		''  u   expr
+		astDelNode( n )
+		n = r
+		astDelTree( l )
+		l = n->l
+		r = n->r
+		function = rtlUStrConcatAssign( l, astUpdStrConcat( r ) )
+		astDelNode( n )
+	else
+		function = rtlUStrAssign( l, astUpdStrConcat( r ) )
+		astDelNode( n )
+	end if
+
+end function
+
 private function hOptStrAssignment _
 	( _
 		byval n as ASTNODE ptr, _
@@ -1826,6 +1881,11 @@ function astOptAssignment( byval n as ASTNODE ptr ) as ASTNODE ptr
 	case FB_DATATYPE_STRING, FB_DATATYPE_FIXSTR, _
 		 FB_DATATYPE_WCHAR
 		return hOptStrAssignment( n, l, r )
+
+	'' ustrings take their own path -- hOptStrAssignment() would select the
+	'' byte-oriented runtime functions
+	case FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR
+		return hOptUStrAssignment( n, l, r )
 	end select
 
 	dclass = typeGetClass( dtype )

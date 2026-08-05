@@ -583,6 +583,26 @@ function astNewASSIGN _
 	if( (ldclass = FB_DATACLASS_STRING) or _
 		(rdclass = FB_DATACLASS_STRING) ) then
 
+		'' ustring? Both ustring forms are FB_DATACLASS_STRING, so they land
+		'' here too -- but they must never reach rtlStrAssign(), which would
+		'' hand a UTF-16 buffer to a byte-oriented runtime.
+		if( typeIsUstring( ldtype ) or typeIsUstring( rdtype ) ) then
+			'' !!!TODO!!! mixed ustring/string assignment needs the UTF-8
+			'' conversion path; until then reject it rather than corrupt it
+			if( typeIsUstring( ldtype ) <> typeIsUstring( rdtype ) ) then
+				errReport( FB_ERRMSG_TYPEMISMATCH )
+				exit function
+			end if
+
+			'' As with STRING below: only an initialization is emitted here.
+			'' A plain assignment is left as an ASSIGN node so that
+			'' astUpdStrConcat()/astOptAssignment() can lower  a = b + c  into
+			'' one concat plus a descriptor steal, instead of a copy per term.
+			if( (options and AST_OPOPT_ISINI) <> 0 ) then
+				return rtlUStrAssign( l, r, TRUE )
+			end if
+		end if
+
 		'' both not strings?
 		if( ldclass <> rdclass ) then
 			if( hCheckStringOps( l, ldclass, r, rdclass ) = FALSE ) then

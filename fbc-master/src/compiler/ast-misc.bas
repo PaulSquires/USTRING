@@ -683,7 +683,8 @@ function astUpdStrConcat( byval n as ASTNODE ptr ) as ASTNODE ptr
 
 	select case as const astGetDataType( n )
 	case FB_DATATYPE_STRING, FB_DATATYPE_FIXSTR, _
-		 FB_DATATYPE_WCHAR
+		 FB_DATATYPE_WCHAR, _
+		 FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR
 
 	case else
 		exit function
@@ -706,7 +707,9 @@ function astUpdStrConcat( byval n as ASTNODE ptr ) as ASTNODE ptr
 			l = n->l
 			r = n->r
 			dim as integer ldtype = astGetDataType( l ), rdtype = astGetDataType( r )
-			if( astGetDataType( n ) <> FB_DATATYPE_WCHAR ) then
+			if( typeIsUstring( astGetDataType( n ) ) ) then
+				function = rtlUStrConcat( l, ldtype, r, rdtype )
+			elseif( astGetDataType( n ) <> FB_DATATYPE_WCHAR ) then
 				function = rtlStrConcat( l, ldtype, r, rdtype )
 			else
 				function = rtlWstrConcat( l, ldtype, r, rdtype )
@@ -999,9 +1002,9 @@ private function hHasDtor( byval sym as FBSYMBOL ptr ) as integer
 	'' Everything with a destructor (classes)
 	function = symbHasDtor( sym )
 
-	'' But also dynamic [w]strings
+	'' But also dynamic [w|u]strings
 	select case( symbGetType( sym ) )
-	case FB_DATATYPE_STRING
+	case FB_DATATYPE_STRING, FB_DATATYPE_USTRING
 		function = TRUE
 
 	case typeAddrOf( FB_DATATYPE_WCHAR )

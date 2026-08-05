@@ -956,15 +956,33 @@ function astNewBOP _
 			end if
 		end if
 
+		'' ustring? Both forms share FB_DATACLASS_STRING with STRING, so they
+		'' arrive here as well and have to be split off before the byte-oriented
+		'' runtime is selected below.
+		dim as integer is_ustr_op = (typeIsUstring( ldtype ) or typeIsUstring( rdtype ))
+
 		'' concatenation?
 		if( op = AST_OP_ADD ) then
 			'' both literals?
-			if( litsym <> NULL ) then
+			if( (litsym <> NULL) and (is_ustr_op = FALSE) ) then
 				return hStrLiteralConcat( l, r )
 			end if
 
-			'' result will be always an var-len string
-			ldtype = typeUnsetIsConst( typeJoin( ldtype, FB_DATATYPE_STRING ) )
+			if( is_ustr_op ) then
+				'' !!!TODO!!! mixing ustring with a narrow string needs the
+				'' UTF-8 conversion path; reject rather than corrupt for now
+				if( typeIsUstring( ldtype ) <> typeIsUstring( rdtype ) ) then
+					errReport( FB_ERRMSG_TYPEMISMATCH )
+					exit function
+				end if
+
+				'' result is always a var-len ustring
+				ldtype = typeUnsetIsConst( typeJoin( ldtype, FB_DATATYPE_USTRING ) )
+			else
+				'' result will be always an var-len string
+				ldtype = typeUnsetIsConst( typeJoin( ldtype, FB_DATATYPE_STRING ) )
+			end if
+
 			ldclass = FB_DATACLASS_STRING
 			rdtype = typeJoin( rdtype, ldtype )
 			rdclass = ldclass
@@ -976,12 +994,20 @@ function astNewBOP _
 		'' comparison?
 		elseif( astOpIsRelational( op ) ) then
 			'' both literals?
-			if( litsym <> NULL ) then
+			if( (litsym <> NULL) and (is_ustr_op = FALSE) ) then
 				return hStrLiteralCompare( op, l, r )
 			end if
 
 			'' convert to: strcmp(l,r) op 0
-			l = rtlStrCompare( l, ldtype, r, rdtype )
+			if( is_ustr_op ) then
+				if( typeIsUstring( ldtype ) <> typeIsUstring( rdtype ) ) then
+					errReport( FB_ERRMSG_TYPEMISMATCH )
+					exit function
+				end if
+				l = rtlUStrCompare( l, ldtype, r, rdtype )
+			else
+				l = rtlStrCompare( l, ldtype, r, rdtype )
+			end if
 			r = astNewCONSTi( 0 )
 
 			ldtype = typeJoin( ldtype, astGetFullType( l ) )

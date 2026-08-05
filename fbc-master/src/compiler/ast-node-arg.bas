@@ -297,7 +297,12 @@ private sub hCheckByrefParam _
 	if( astIsCALL( t ) ) then
 		select case as const( astGetDataType( t ) )
 		case FB_DATATYPE_STRING, FB_DATATYPE_FIXSTR, _
-			FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR
+			FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR, _
+			FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR
+			'' Leaving USTRING out here is not merely a missed optimization:
+			'' the fallback builds a temp var whose own initialization is
+			'' another byref call returning USTRING, which recurses until the
+			'' stack dies.
 			exit sub
 		end select
 	end if
