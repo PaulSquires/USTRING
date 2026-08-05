@@ -2,7 +2,7 @@
 #include once "uwstring-fixed.bi"
 #include once "chk-wstring.bi"
 
-#define ustring UWSTRING_FIXED
+#define uwstr_t UWSTRING_FIXED
 
 SUITE( fbc_tests.udt_wstring_.instr_ )
 
@@ -10,9 +10,9 @@ SUITE( fbc_tests.udt_wstring_.instr_ )
 	#macro check_0( result, text, pattern )
 		scope
 			dim st as wstring * 50 = text
-			dim ut as ustring = st
+			dim ut as uwstr_t = st
 			dim sp as wstring * 50 = pattern
-			dim up as ustring = sp
+			dim up as uwstr_t = sp
 			
 			CU_ASSERT_EQUAL( result, instr( st, sp ) )
 			CU_ASSERT_EQUAL( result, instr( st, up ) )
@@ -25,9 +25,9 @@ SUITE( fbc_tests.udt_wstring_.instr_ )
 	#macro check_x( result, index, text, pattern )
 		scope
 			dim st as wstring * 50 = text
-			dim ut as ustring = st
+			dim ut as uwstr_t = st
 			dim sp as wstring * 50 = pattern
-			dim up as ustring = sp
+			dim up as uwstr_t = sp
 			
 			CU_ASSERT_EQUAL( result, instr( index, st, sp ) )
 			CU_ASSERT_EQUAL( result, instr( index, st, up ) )
@@ -40,9 +40,9 @@ SUITE( fbc_tests.udt_wstring_.instr_ )
 	#macro check_0_any( result, text, pattern )
 		scope
 			dim st as wstring * 50 = text
-			dim ut as ustring = st
+			dim ut as uwstr_t = st
 			dim sp as wstring * 50 = pattern
-			dim up as ustring = sp
+			dim up as uwstr_t = sp
 			
 			CU_ASSERT_EQUAL( result, instr( st, any sp ) )
 			CU_ASSERT_EQUAL( result, instr( st, any up ) )
@@ -55,9 +55,9 @@ SUITE( fbc_tests.udt_wstring_.instr_ )
 	#macro check_x_any( result, index, text, pattern )
 		scope
 			dim st as wstring * 50 = text
-			dim ut as ustring = st
+			dim ut as uwstr_t = st
 			dim sp as wstring * 50 = pattern
-			dim up as ustring = sp
+			dim up as uwstr_t = sp
 			
 			CU_ASSERT_EQUAL( result, instr( index, st, any sp ) )
 			CU_ASSERT_EQUAL( result, instr( index, st, any up ) )

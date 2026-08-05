@@ -2,7 +2,7 @@
 #include once "uzstring-fixed.bi"
 #include once "chk-zstring.bi"
 
-#define ustring UZSTRING_FIXED
+#define uzstr_t UZSTRING_FIXED
 
 SUITE( fbc_tests.udt_zstring_.trim_ )
 
@@ -10,7 +10,7 @@ SUITE( fbc_tests.udt_zstring_.trim_ )
 	#macro check_rtlfunc( rtlfunc, text )
 		scope
 			dim t as zstring * 50 = text
-			dim u as ustring = t
+			dim u as uzstr_t = t
 
 			CU_ASSERT( t = text )
 			CU_ASSERT( u = t )
@@ -26,13 +26,13 @@ SUITE( fbc_tests.udt_zstring_.trim_ )
 	#macro check_rtlfunc_filter( rtlfunc, text, pattern )
 		scope
 			dim t as zstring * 50 = text
-			dim u as ustring = t
+			dim u as uzstr_t = t
 
 			CU_ASSERT( t = text )
 			CU_ASSERT( u = t )
 
 			dim tf as zstring * 50 = pattern
-			dim uf as ustring = tf
+			dim uf as uzstr_t = tf
 
 			'' zstring, udt
 			scope
@@ -62,13 +62,13 @@ SUITE( fbc_tests.udt_zstring_.trim_ )
 	#macro check_rtlfunc_any( rtlfunc, text, pattern )
 		scope
 			dim t as zstring * 50 = text
-			dim u as ustring = t
+			dim u as uzstr_t = t
 
 			CU_ASSERT( t = text )
 			CU_ASSERT( u = t )
 
 			dim tf as zstring * 50 = pattern
-			dim uf as ustring = tf
+			dim uf as uzstr_t = tf
 
 			'' zstring, udt
 			scope

@@ -2,7 +2,7 @@
 #include once "uzstring-fixed.bi"
 #include once "chk-zstring.bi"
 
-#define ustring UZSTRING_FIXED_MUTABLE
+#define uzstr_t UZSTRING_FIXED_MUTABLE
 
 #define BUFFERSIZE 50
 
@@ -22,7 +22,7 @@ SUITE( fbc_tests.udt_zstring_.midstmt )
 			INIT_FIXED_STRING( w2, zstring, BUFFERSIZE, left( src, (length2) ) )
 			mid( w1, start ) = w2
 
-			dim u1 as ustring = w1
+			dim u1 as uzstr_t = w1
 			mid( u1, start ) = w2
 
 			dim r1 as zstring * BUFFERSIZE = u1
@@ -36,8 +36,8 @@ SUITE( fbc_tests.udt_zstring_.midstmt )
 			INIT_FIXED_STRING( w2, zstring, BUFFERSIZE, left( src, (length2) ) )
 			mid( w1, start, length ) = w2
 
-			dim u1 as ustring = w1
-			dim u2 as ustring = w2
+			dim u1 as uzstr_t = w1
+			dim u2 as uzstr_t = w2
 			mid( u1, start, length ) = w2
 
 			dim r1 as zstring * BUFFERSIZE = u1

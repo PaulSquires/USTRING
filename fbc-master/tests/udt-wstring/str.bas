@@ -2,7 +2,7 @@
 #include once "uwstring-fixed.bi"
 #include once "chk-wstring.bi"
 
-#define ustring UWSTRING_FIXED
+#define uwstr_t UWSTRING_FIXED
 
 SUITE( fbc_tests.udt_wstring_.str_ )
 
@@ -11,7 +11,7 @@ SUITE( fbc_tests.udt_wstring_.str_ )
 		scope
 			dim t as dtype = value
 			dim w as wstring * 50 = str( t )
-			dim u as ustring = str( t )
+			dim u as uwstr_t = str( t )
 			dim r as wstring * 50 = u
 			CU_ASSERT_WSTRING_EQUAL( w, r )
 		end scope
@@ -82,10 +82,10 @@ SUITE( fbc_tests.udt_wstring_.str_ )
 		dim s2 as wstring * 10 = chr(65)
 		dim s3 as wstring * 10 = str( s1 )
 
-		dim u1 as ustring = chr(65)
-		dim u2 as ustring = chr(65)
-		dim u3 as ustring = str( s1 )
-		dim u4 as ustring = str( u1 )
+		dim u1 as uwstr_t = chr(65)
+		dim u2 as uwstr_t = chr(65)
+		dim u3 as uwstr_t = str( s1 )
+		dim u4 as uwstr_t = str( u1 )
 
 		dim s4 as wstring * 10 = str( u1 )
 

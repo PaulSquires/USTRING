@@ -2,7 +2,7 @@
 #include once "uzstring-fixed.bi"
 #include once "chk-zstring.bi"
 
-#define ustring UZSTRING_FIXED
+#define uzstr_t UZSTRING_FIXED
 
 SUITE( fbc_tests.udt_zstring_.wstr_ )
 
@@ -11,7 +11,7 @@ SUITE( fbc_tests.udt_zstring_.wstr_ )
 		scope
 			dim t as dtype = value
 			dim w as zstring * 50 = wstr( t )
-			dim u as ustring = wstr( t )
+			dim u as uzstr_t = wstr( t )
 			dim r as zstring * 50 = u
 			CU_ASSERT_ZSTRING_EQUAL( w, r )
 		end scope
@@ -82,10 +82,10 @@ SUITE( fbc_tests.udt_zstring_.wstr_ )
 		dim s2 as zstring * 10 = wchr(65)
 		dim s3 as zstring * 10 = wstr( s1 )
 
-		dim u1 as ustring = wchr(65)
-		dim u2 as ustring = wchr(65)
-		dim u3 as ustring = wstr( s1 )
-		dim u4 as ustring = wstr( u1 )
+		dim u1 as uzstr_t = wchr(65)
+		dim u2 as uzstr_t = wchr(65)
+		dim u3 as uzstr_t = wstr( s1 )
+		dim u4 as uzstr_t = wstr( u1 )
 
 		dim s4 as zstring * 10 = str( u1 )
 

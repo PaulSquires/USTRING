@@ -2,14 +2,14 @@
 #include once "uzstring-fixed.bi"
 #include once "chk-zstring.bi"
 
-#define ustring UZSTRING_FIXED
+#define uzstr_t UZSTRING_FIXED
 
 SUITE( fbc_tests.udt_zstring_.select_ )
 
 	#macro check( expr, literal, is_match )
 		scope
 			dim w as zstring * 50 = expr
-			dim u as ustring = w
+			dim u as uzstr_t = w
 			
 			select case u
 			case literal
@@ -31,7 +31,7 @@ SUITE( fbc_tests.udt_zstring_.select_ )
 	#macro check_range( expr, literal1, literal2, is_match )
 		scope
 			dim w as zstring * 50 = expr
-			dim u as ustring = w
+			dim u as uzstr_t = w
 			
 			select case u
 			case literal1 to literal2

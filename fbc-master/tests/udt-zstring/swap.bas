@@ -27,7 +27,7 @@ operator UZSTRING_HAS_ID.Cast() byref as zstring
 	operator = *cast(zstring ptr, @_data)	
 end operator
 
-#define ustring UZSTRING_HAS_ID
+#define uzstr_t UZSTRING_HAS_ID
 
 SUITE( fbc_tests.udt_zstring_.swap_ )
 
@@ -36,9 +36,9 @@ SUITE( fbc_tests.udt_zstring_.swap_ )
 			dim t1 as zstring * 50 = literal1
 			dim t2 as zstring * 50 = literal2
 
-			dim u1 as ustring = literal1
+			dim u1 as uzstr_t = literal1
 			u1.id = 1
-			dim u2 as ustring = literal2
+			dim u2 as uzstr_t = literal2
 			u2.id = 2
 
 			'' initial condition check

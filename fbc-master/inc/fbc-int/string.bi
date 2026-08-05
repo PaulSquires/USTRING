@@ -42,6 +42,19 @@ extern "rtlib"
 		size as integer              '' size of allocated memory
 	end type
 
+	'' a USTRING code unit: uint16 on EVERY target, never wchar_t
+	type FB_UCHAR as USHORT
+
+	'' var-len ustring descriptor
+	''
+	'' NOTE: len and size are in CODE UNITS, not bytes. FBSTRING gets away with
+	'' byte == char; here the two differ by a factor of 2.
+	type FBUSTRING
+		data as FB_UCHAR ptr         '' pointer to the start of code units
+		len as integer               '' length, in code units
+		size as integer              '' allocated code units
+	end type
+
 	'' VAR-LEN STRING API (FBSTRING)
 	declare sub fb_StrDelete( byval s as const FBSTRING ptr )
 	declare sub fb_LEFTSELF( byval dst as FBSTRING ptr, byval length as const integer )

@@ -2,7 +2,7 @@
 #include once "uwstring-fixed.bi"
 #include once "chk-wstring.bi"
 
-#define ustring UWSTRING_FIXED
+#define uwstr_t UWSTRING_FIXED
 
 SUITE( fbc_tests.udt_wstring_.conversion )
 
@@ -10,7 +10,7 @@ SUITE( fbc_tests.udt_wstring_.conversion )
 
 		scope
 			dim t as wstring * 50 = wstr( #value )
-			dim u as ustring = t
+			dim u as uwstr_t = t
 
 			#if #datatype = "double"
 				CU_ASSERT_DOUBLE_EQUAL( func( t ), value, 0 )

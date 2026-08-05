@@ -2,7 +2,7 @@
 #include once "uzstring-fixed.bi"
 #include once "chk-zstring.bi"
 
-#define ustring UZSTRING_FIXED
+#define uzstr_t UZSTRING_FIXED
 
 SUITE( fbc_tests.udt_zstring_.iif_ )
 
@@ -11,8 +11,8 @@ SUITE( fbc_tests.udt_zstring_.iif_ )
 			dim t1 as zstring * 50 = true_expr
 			dim t2 as zstring * 50 = false_expr
 
-			dim u1 as ustring = true_expr
-			dim u2 as ustring = false_expr
+			dim u1 as uzstr_t = true_expr
+			dim u2 as uzstr_t = false_expr
 
 			'' ZSTRING = iif( expr, LITERAL1, LITERAL2 )
 			scope
@@ -91,12 +91,12 @@ SUITE( fbc_tests.udt_zstring_.iif_ )
 			dim t1 as zstring * 50 = true_expr
 			dim t2 as zstring * 50 = false_expr
 
-			dim u1 as ustring = true_expr
-			dim u2 as ustring = false_expr
+			dim u1 as uzstr_t = true_expr
+			dim u2 as uzstr_t = false_expr
 
 			'' USTRING = iif( expr, LITERAL1, LITERAL2 )
 			scope
-				dim a as ustring = iif( expr, true_expr, false_expr )
+				dim a as uzstr_t = iif( expr, true_expr, false_expr )
 				dim r as zstring * 50 = a
 				if( expr ) then
 					CU_ASSERT_ZSTRING_EQUAL( r, t1 )
@@ -107,7 +107,7 @@ SUITE( fbc_tests.udt_zstring_.iif_ )
 
 			'' USTRING = iif( expr, ZSTRING1, LITERAL2 )
 			scope
-				dim a as ustring = iif( expr, t1, false_expr )
+				dim a as uzstr_t = iif( expr, t1, false_expr )
 				dim r as zstring * 50 = a
 				if( expr ) then
 					CU_ASSERT_ZSTRING_EQUAL( r, t1 )
@@ -118,7 +118,7 @@ SUITE( fbc_tests.udt_zstring_.iif_ )
 
 			'' USTRING = iif( expr, LITERAL1, ZSTRING2 )
 			scope
-				dim a as ustring = iif( expr, true_expr, t2 )
+				dim a as uzstr_t = iif( expr, true_expr, t2 )
 				dim r as zstring * 50 = a
 				if( expr ) then
 					CU_ASSERT_ZSTRING_EQUAL( r, t1 )
@@ -129,7 +129,7 @@ SUITE( fbc_tests.udt_zstring_.iif_ )
 
 			'' USTRING = iif( expr, ZSTRING1, ZSTRING2 )
 			scope
-				dim a as ustring = iif( expr, t1, t2 )
+				dim a as uzstr_t = iif( expr, t1, t2 )
 				dim r as zstring * 50 = a
 				if( expr ) then
 					CU_ASSERT_ZSTRING_EQUAL( r, t1 )
@@ -140,7 +140,7 @@ SUITE( fbc_tests.udt_zstring_.iif_ )
 
 			'' USTRING = iif( expr, USTRING1, LITERAL2 )
 			scope
-				dim a as ustring = iif( expr, u1, false_expr )
+				dim a as uzstr_t = iif( expr, u1, false_expr )
 				dim r as zstring * 50 = a
 				if( expr ) then
 					CU_ASSERT_ZSTRING_EQUAL( r, t1 )
@@ -151,7 +151,7 @@ SUITE( fbc_tests.udt_zstring_.iif_ )
 
 			'' USTRING = iif( expr, LITERAL1, USTRING2 )
 			scope
-				dim a as ustring = iif( expr, true_expr, u2 )
+				dim a as uzstr_t = iif( expr, true_expr, u2 )
 				dim r as zstring * 50 = a
 				if( expr ) then
 					CU_ASSERT_ZSTRING_EQUAL( r, t1 )
@@ -162,7 +162,7 @@ SUITE( fbc_tests.udt_zstring_.iif_ )
 
 			'' USTRING = iif( expr, USTRING1, USTRING2 )
 			scope
-				dim a as ustring = iif( expr, u1, u2 )
+				dim a as uzstr_t = iif( expr, u1, u2 )
 				dim r as zstring * 50 = a
 				if( expr ) then
 					CU_ASSERT_ZSTRING_EQUAL( r, t1 )

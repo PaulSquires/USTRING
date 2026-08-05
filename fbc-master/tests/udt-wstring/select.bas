@@ -2,14 +2,14 @@
 #include once "uwstring-fixed.bi"
 #include once "chk-wstring.bi"
 
-#define ustring UWSTRING_FIXED
+#define uwstr_t UWSTRING_FIXED
 
 SUITE( fbc_tests.udt_wstring_.select_ )
 
 	#macro check( expr, literal, is_match )
 		scope
 			dim w as wstring * 50 = expr
-			dim u as ustring = w
+			dim u as uwstr_t = w
 			
 			select case u
 			case literal
@@ -31,7 +31,7 @@ SUITE( fbc_tests.udt_wstring_.select_ )
 	#macro check_range( expr, literal1, literal2, is_match )
 		scope
 			dim w as wstring * 50 = expr
-			dim u as ustring = w
+			dim u as uwstr_t = w
 			
 			select case u
 			case literal1 to literal2

@@ -2,7 +2,7 @@
 #include once "uzstring-fixed.bi"
 #include once "chk-zstring.bi"
 
-#define ustring UZSTRING_FIXED
+#define uzstr_t UZSTRING_FIXED
 
 SUITE( fbc_tests.udt_zstring_.asc_ )
 
@@ -11,7 +11,7 @@ SUITE( fbc_tests.udt_zstring_.asc_ )
 		for i as uinteger = 1 to 255
 			s[i-1] = i
 		next
-		dim u as ustring = s
+		dim u as uzstr_t = s
 
 		CU_ASSERT_EQUAL( asc( s ), asc( u ) )
 
@@ -34,7 +34,7 @@ SUITE( fbc_tests.udt_zstring_.asc_ )
 		for i as uinteger = 1 to 255
 			s[i-1] = i shl 8
 		next
-		dim u as ustring = s
+		dim u as uzstr_t = s
 
 		CU_ASSERT_EQUAL( asc( s ), asc( u ) )
 

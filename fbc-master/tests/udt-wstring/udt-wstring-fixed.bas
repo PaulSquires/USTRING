@@ -1,7 +1,7 @@
 #include "fbcunit.bi"
 #include once "uwstring-fixed.bi"
 
-#define ustring uwstring_fixed
+#define uwstr_t uwstring_fixed
 
 '' test UWSTRING_FIXED, reference implementation
 
@@ -12,7 +12,7 @@ SUITE( fbc_tests.udt_wstring_.udt_wstring_fixed )
 		'' default initializer
 		scope
 			dim w as wstring * 50
-			dim u as ustring
+			dim u as uwstr_t
 
 			CU_ASSERT( len(w) = 0 )
 			CU_ASSERT( len(u) = 0 )
@@ -24,7 +24,7 @@ SUITE( fbc_tests.udt_wstring_.udt_wstring_fixed )
 		'' null initializer
 		scope
 			dim w as wstring * 50 = ""
-			dim u as ustring = ""
+			dim u as uwstr_t = ""
 
 			CU_ASSERT( len(w) = 0 )
 			CU_ASSERT( len(u) = 0 )
@@ -34,7 +34,7 @@ SUITE( fbc_tests.udt_wstring_.udt_wstring_fixed )
 		scope
 			dim a as string = "abcdefghij"
 			dim w as wstring * 50 = "abcdefghij"
-			dim u as ustring = "abcdefghij"
+			dim u as uwstr_t = "abcdefghij"
 
 			CU_ASSERT( len("abcdefghij") = 10 )
 			CU_ASSERT( len(a) = 10 )
@@ -47,7 +47,7 @@ SUITE( fbc_tests.udt_wstring_.udt_wstring_fixed )
 		'' initialize from WSTRING literal
 		scope
 			dim w as wstring * 50 = !"\u3041\u3043\u3045\u3047\u3049"
-			dim u as ustring = !"\u3041\u3043\u3045\u3047\u3049"
+			dim u as uwstr_t = !"\u3041\u3043\u3045\u3047\u3049"
 
 			CU_ASSERT( len( !"\u3041\u3043\u3045\u3047\u3049" ) = 5)
 			CU_ASSERT( len(w) = 5)
@@ -60,7 +60,7 @@ SUITE( fbc_tests.udt_wstring_.udt_wstring_fixed )
 
 			dim a as string = LIT_A
 			dim w as wstring * 50 = LIT_A
-			dim u as ustring = LIT_A
+			dim u as uwstr_t = LIT_A
 
 			CU_ASSERT( len(LIT_A) = 10 )
 			CU_ASSERT( len(a) = len(LIT_A) )
@@ -74,7 +74,7 @@ SUITE( fbc_tests.udt_wstring_.udt_wstring_fixed )
 			const LIT_W = !"\u3041\u3043\u3045\u3047\u3049"
 
 			dim w as wstring * 50 = LIT_W
-			dim u as ustring = LIT_W
+			dim u as uwstr_t = LIT_W
 
 			CU_ASSERT( len(LIT_W) = 5 )
 			CU_ASSERT( len(w) = len(LIT_W) )
@@ -86,7 +86,7 @@ SUITE( fbc_tests.udt_wstring_.udt_wstring_fixed )
 		scope
 			dim a as string = "abcdefghij"
 			dim w as wstring * 50 = a
-			dim u as ustring = a
+			dim u as uwstr_t = a
 
 			CU_ASSERT( len(a) = 10 )
 			CU_ASSERT( len(w) = len(a) )
@@ -98,7 +98,7 @@ SUITE( fbc_tests.udt_wstring_.udt_wstring_fixed )
 		scope
 			dim w0 as wstring * 20 = !"\u3041\u3043\u3045\u3047\u3049"
 			dim w as wstring * 50 = w0
-			dim u as ustring = w0
+			dim u as uwstr_t = w0
 
 			CU_ASSERT( len(w0) = 5 )
 			CU_ASSERT( len(w) = len(w0) )

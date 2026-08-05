@@ -1,5 +1,39 @@
 Version 1.20.0
 
+[added]
+- USTRING: a portable, dynamic Unicode string type. A code unit is uint16 on
+  EVERY target, so unlike WSTRING (wchar_t: 2 bytes on Windows, 4 on Linux,
+  1 on DOS) the representation does not change between platforms. Both a
+  var-len 'USTRING' and a fixed 'USTRING * N' form are provided; N counts code
+  units. STRING, ZSTRING and WSTRING are unchanged -- the type is purely
+  additive.
+- USTRING: conversion to and from STRING/ZSTRING is UTF-8 on every target, with
+  malformed input replaced by U+FFFD rather than raising an error. Conversion to
+  and from WSTRING re-encodes where wchar_t is not 16 bits. NOTE the deliberate
+  boundary: arbitrary BINARY does not round-trip through a USTRING, because
+  invalid UTF-8 becomes U+FFFD. Binary data belongs in STRING.
+- USTRING: LEN and [] count CODE UNITS, so an astral character (a surrogate
+  pair) counts as 2. LEFT/RIGHT/MID/INSTR/INSTRREV/TRIM/LTRIM/RTRIM (with ANY
+  and EX forms)/UCASE/LCASE/SPACE/STRING/ASC/LSET/RSET/SWAP are supported, as
+  are UDT fields, arrays, BYREF/BYVAL parameters and function results.
+- USTRING: UCASE/LCASE use a generated simple case-mapping table over the BMP
+  rather than towupper()/towlower(), which are locale-dependent and would make
+  the same string fold differently depending on the user's locale and libc.
+  Regenerate with 'python tools/gen_case_table.py'.
+- USTRING: PRINT/WRITE to a real Windows console take the wide path so the OS
+  renders UTF-16 directly; files, redirected output and non-Windows consoles get
+  UTF-8, so a ustring written to a file produces a portable file everywhere.
+  LINE INPUT # and INPUT # decode UTF-8 to match.
+- USTRING: passing a ustring to a WSTRING PTR parameter is a free pointer
+  reinterpret where wchar_t is 16 bits (Windows); where it is wider the text is
+  re-encoded and a warning is emitted, so the cost is not invisible to someone
+  developing on Windows.
+- USTRING is gated out of '-lang qb', as ZSTRING and WSTRING already are.
+
+[changed]
+- tests: the 'ustring' macro in tests/udt-wstring and tests/udt-zstring was
+  renamed to 'uwstr_t'/'uzstr_t', since USTRING is now a keyword.
+
 [changed]
 - internal: changes to all backends gcc/llvm/gas64/gas/gas+SSE for floating point comparison handling
 - allow '-fpmode fast' command line option for any target (previously was SSE only) - this can be used augment floating point handling where some accuracy is sacrificed for smaller and faster code generation

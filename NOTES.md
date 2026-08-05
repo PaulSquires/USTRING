@@ -345,6 +345,54 @@ routes around them rather than inheriting them.
 construction, so the encoding option has nothing to add yet. `PRINT USING` and
 the graphics `DRAW STRING` path are also not wired.
 
-## Later phases
+## Phase 6 — upstream packaging
 
-Phase 6 is upstream packaging.
+`changelog.txt` entry, `doc/ustring.txt`, `FBUSTRING` added to
+`inc/fbc-int/string.bi`, and dialect gating confirmed: USTRING works in
+`-lang fb`, `fblite` and `deprecated`, and is not a keyword in `-lang qb`,
+matching how `ZSTRING`/`WSTRING` are gated.
+
+### A real breakage, found late
+
+`tests/udt-wstring` and `tests/udt-zstring` both contain `#define ustring ...`
+(18 files each). With `USTRING` now a keyword that is `error 4: Duplicated
+definition` — **fbc's own test suite would not compile**. Renamed to
+`uwstr_t` / `uzstr_t`.
+
+This was flagged in Phase 0 and then not acted on for five phases, because the
+regression runs never caught it. Which brings us to:
+
+### The verification failure
+
+`clean-tests` is a target in the ROOT makefile, not in `tests/Makefile`. Running
+`make clean-tests` from inside `tests/` silently does nothing. With the `.bas`
+sources unchanged, make then considered all ~670 `.o` files up to date and
+re-ran the *previous* `fbc-tests.exe`.
+
+Every "the suite is unchanged at 1154412 assertions" claim from Phase 1 onward
+was therefore re-executing a binary built at 14:36–14:41, before most of this
+work existed. The runs were not measuring anything.
+
+Corrected by deleting the objects and the executable explicitly. The clean
+run compiles 670 files and reports **1154412 assertions / 11 failed** — the same
+numbers, so the conclusion happened to hold, but it was not being demonstrated.
+`tests/BASELINE.md` now documents the trap and how to confirm a rebuild really
+happened (check the compile count in the log; it should be ~670, not 1).
+
+## Status
+
+Phases 0-6 complete. Verified on win64 only, under both `-gen gcc` and
+`-gen gas64`:
+
+| Suite | Checks |
+|---|---|
+| `tests/ustr_codec_test.c` | 70 |
+| `tests/ustr_core_test.c` | 38 |
+| `tests/ustring_lang_test.bas` | 134 |
+| `tests/ustring_io_test.bas` | 13 |
+| fbc suite | 1154412 assertions, 11 failed (all pre-existing ThreadCall) |
+
+Still open: linux64/ARM/JS/DOS are untested, the LLVM path is verified by
+reading IR but never assembled (fbc 1.20's IR uses an obsolete `llvm.memset`
+signature clang 21 rejects, independently of ustring), and `PRINT USING`,
+`DRAW STRING` and `OPEN ... ENCODING` are not wired.

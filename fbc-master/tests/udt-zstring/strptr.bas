@@ -2,13 +2,13 @@
 #include once "uzstring-fixed.bi"
 #include once "chk-zstring.bi"
 
-#define ustring UZSTRING_FIXED
+#define uzstr_t UZSTRING_FIXED
 
 SUITE( fbc_tests.udt_zstring_.strptr_ )
 
 	TEST( deref )
 		dim s1 as zstring * 50 = "1234"
-		dim u1 as ustring = s1
+		dim u1 as uzstr_t = s1
 
 		dim as zstring ptr p1 = strptr( u1 )
 
@@ -18,7 +18,7 @@ SUITE( fbc_tests.udt_zstring_.strptr_ )
 	TEST( ptr_size )
 
 		dim s as zstring * 50 = "1234"
-		dim s1 as ustring = s
+		dim s1 as uzstr_t = s
 
 		scope
 			dim as zstring ptr p1 = strptr(s1)

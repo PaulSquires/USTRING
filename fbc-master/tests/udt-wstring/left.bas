@@ -2,7 +2,7 @@
 #include once "uwstring-fixed.bi"
 #include once "chk-wstring.bi"
 
-#define ustring UWSTRING_FIXED
+#define uwstr_t UWSTRING_FIXED
 
 SUITE( fbc_tests.udt_wstring_.left_ )
 
@@ -10,7 +10,7 @@ SUITE( fbc_tests.udt_wstring_.left_ )
 	#macro check_rtlfunc( rtlfunc, s, n )
 		scope
 			dim t as wstring * 50 = s
-			dim u as ustring = t
+			dim u as uwstr_t = t
 
 			CU_ASSERT( t = s )
 			CU_ASSERT( u = t )

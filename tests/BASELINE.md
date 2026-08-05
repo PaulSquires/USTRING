@@ -46,6 +46,24 @@ Two environment workarounds are required; neither is related to ustring.
 
 `gfxlib2` must also be built (`make gfxlib2`) — the suite links `-lfbgfxmt`.
 
+## Trap: `clean-tests` is a ROOT makefile target
+
+`clean-tests` is defined in `fbc-master/makefile`, **not** in `tests/Makefile`.
+Running `make clean-tests` from inside `tests/` silently does nothing, and since
+the `.bas` sources have not changed, make then treats all ~670 `.o` files as up
+to date and re-runs the *previous* `fbc-tests.exe` unchanged.
+
+The result looks like a passing regression run but proves nothing. To force a
+real rebuild:
+
+```
+find tests -name "*.o" -delete
+rm -f tests/fbc-tests.exe tests/unit-tests.inc tests/unit-tests-obj.lst
+```
+
+Confirm it actually rebuilt by checking the compile count in the log — it should
+be ~670, not 1.
+
 ## Build commands used
 
 ```

@@ -2,7 +2,7 @@
 #include once "uzstring-fixed.bi"
 #include once "chk-zstring.bi"
 
-#define ustring UZSTRING_FIXED
+#define uzstr_t UZSTRING_FIXED
 
 #define PRINT_IF_UNEQUAL
 
@@ -52,7 +52,7 @@ SUITE( fbc_tests.udt_zstring_.print_ )
 
 		#macro check( dtype, value )
 			scope
-				dim x as ustring = str(value)
+				dim x as uzstr_t = str(value)
 				dim cmp as zstring * BUFFER_SIZE = str( value )
 				ZPRINT( x, cmp )
 			end scope		
@@ -125,7 +125,7 @@ SUITE( fbc_tests.udt_zstring_.print_ )
 
 		#macro check( literal )
 			scope
-				dim x as ustring = literal
+				dim x as uzstr_t = literal
 				ZPRINT_STR( x, literal )
 			end scope		
 		#endmacro

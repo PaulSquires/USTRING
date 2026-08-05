@@ -2,7 +2,7 @@
 #include once "uzstring-fixed.bi"
 #include once "chk-zstring.bi"
 
-#define ustring UZSTRING_FIXED
+#define uzstr_t UZSTRING_FIXED
 
 SUITE( fbc_tests.udt_zstring_.left_ )
 
@@ -10,7 +10,7 @@ SUITE( fbc_tests.udt_zstring_.left_ )
 	#macro check_rtlfunc( rtlfunc, s, n )
 		scope
 			dim t as zstring * 50 = s
-			dim u as ustring = t
+			dim u as uzstr_t = t
 
 			CU_ASSERT( t = s )
 			CU_ASSERT( u = t )

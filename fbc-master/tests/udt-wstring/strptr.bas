@@ -2,13 +2,13 @@
 #include once "uwstring-fixed.bi"
 #include once "chk-wstring.bi"
 
-#define ustring UWSTRING_FIXED
+#define uwstr_t UWSTRING_FIXED
 
 SUITE( fbc_tests.udt_wstring_.strptr_ )
 
 	TEST( deref )
 		dim s1 as wstring * 50 = "1234"
-		dim u1 as ustring = s1
+		dim u1 as uwstr_t = s1
 
 		dim as wstring ptr p1 = strptr( u1 )
 
@@ -18,7 +18,7 @@ SUITE( fbc_tests.udt_wstring_.strptr_ )
 	TEST( ptr_size )
 
 		dim s as wstring * 50 = "1234"
-		dim s1 as ustring = s
+		dim s1 as uwstr_t = s
 
 		scope
 			dim as wstring ptr p1 = strptr(s1)

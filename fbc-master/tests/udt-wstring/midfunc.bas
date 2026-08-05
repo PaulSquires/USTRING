@@ -2,7 +2,7 @@
 #include once "uwstring-fixed.bi"
 #include once "chk-wstring.bi"
 
-#define ustring UWSTRING_FIXED
+#define uwstr_t UWSTRING_FIXED
 
 SUITE( fbc_tests.udt_wstring_.midfunc )
 
@@ -11,7 +11,7 @@ SUITE( fbc_tests.udt_wstring_.midfunc )
 		scope
 			dim st as wstring * 50 = text
 			dim se as wstring * 50 = expected
-			dim ut as ustring = st
+			dim ut as uwstr_t = st
 
 			CU_ASSERT( st = text )
 			CU_ASSERT( ut = st )
@@ -30,7 +30,7 @@ SUITE( fbc_tests.udt_wstring_.midfunc )
 		scope
 			dim st as wstring * 50 = text
 			dim se as wstring * 50 = expected
-			dim ut as ustring = st
+			dim ut as uwstr_t = st
 
 			CU_ASSERT( st = text )
 			CU_ASSERT( ut = st )

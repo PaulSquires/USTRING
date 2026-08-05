@@ -3,11 +3,13 @@
 '' Standalone rather than fbcunit, so it can run without building the harness:
 ''   fbc-master/bin/fbc.exe -i fbc-master/inc tests/ustring_lang_test.bas
 ''
-'' NOTE the ceiling on what can be tested here: a ustring cannot be given
-'' content yet, because literals are unimplemented and mixing a ustring with a
-'' narrow string is deliberately rejected rather than silently corrupted.
-'' See NOTES.md. Everything below is therefore about geometry, lifetime and the
-'' empty-string edges -- which is exactly where a descriptor type goes wrong.
+'' Covers phases 1-4: geometry and lifetime, literals, VAR inference and
+'' multi-term concat, interop with STRING/ZSTRING/WSTRING, overload resolution,
+'' the intrinsic surface, and aggregates. I/O lives in ustring_io_test.bas.
+''
+'' Where a check compares CONTENT rather than length, that is deliberate: a
+'' wrong-width or wrongly-decoded string still reports the right LEN, because
+'' the size discriminator carries the length independently of the data.
 
 dim shared as integer g_run, g_fail, g_ptrlen
 

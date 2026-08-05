@@ -2,7 +2,7 @@
 #include once "uwstring-fixed.bi"
 #include once "chk-wstring.bi"
 
-#define ustring UWSTRING_FIXED
+#define uwstr_t UWSTRING_FIXED
 
 #define PRINT_IF_UNEQUAL
 
@@ -52,7 +52,7 @@ SUITE( fbc_tests.udt_wstring_.print_ )
 
 		#macro check( dtype, value )
 			scope
-				dim x as ustring = wstr(value)
+				dim x as uwstr_t = wstr(value)
 				dim cmp as wstring * BUFFER_SIZE = wstr( value )
 				WPRINT( x, cmp )
 			end scope		
@@ -125,7 +125,7 @@ SUITE( fbc_tests.udt_wstring_.print_ )
 
 		#macro check( literal )
 			scope
-				dim x as ustring = literal
+				dim x as uwstr_t = literal
 				WPRINT_STR( x, literal )
 			end scope		
 		#endmacro

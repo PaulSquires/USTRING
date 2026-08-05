@@ -2,7 +2,7 @@
 #include once "uwstring-fixed.bi"
 #include once "chk-wstring.bi"
 
-#define ustring UWSTRING_FIXED_MUTABLE
+#define uwstr_t UWSTRING_FIXED_MUTABLE
 
 SUITE( fbc_tests.udt_wstring_.lrset )
 
@@ -13,8 +13,8 @@ SUITE( fbc_tests.udt_wstring_.lrset )
 			dim w2 as wstring * 50 = left( src, (length2) )
 			dim e1 as wstring * 50
 
-			dim u1 as ustring = w1
-			dim u2 as ustring = w2
+			dim u1 as uwstr_t = w1
+			dim u2 as uwstr_t = w2
 
 			if( (length1) > (length2) ) then
 				e1 = (w2) & wspace( (length1) - (length2) )
@@ -49,8 +49,8 @@ SUITE( fbc_tests.udt_wstring_.lrset )
 			dim w2 as wstring * 50 = left( src, (length2) )
 			dim e1 as wstring * 50
 
-			dim u1 as ustring = w1
-			dim u2 as ustring = w2
+			dim u1 as uwstr_t = w1
+			dim u2 as uwstr_t = w2
 
 			if( (length1) > (length2) ) then
 				e1 = wspace( (length1) - (length2) ) & (w2)

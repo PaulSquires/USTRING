@@ -27,7 +27,7 @@ operator UWSTRING_HAS_ID.Cast() byref as wstring
 	operator = *cast(wstring ptr, @_data)	
 end operator
 
-#define ustring UWSTRING_HAS_ID
+#define uwstr_t UWSTRING_HAS_ID
 
 SUITE( fbc_tests.udt_wstring_.swap_ )
 
@@ -36,9 +36,9 @@ SUITE( fbc_tests.udt_wstring_.swap_ )
 			dim t1 as wstring * 50 = literal1
 			dim t2 as wstring * 50 = literal2
 
-			dim u1 as ustring = literal1
+			dim u1 as uwstr_t = literal1
 			u1.id = 1
-			dim u2 as ustring = literal2
+			dim u2 as uwstr_t = literal2
 			u2.id = 2
 
 			'' initial condition check

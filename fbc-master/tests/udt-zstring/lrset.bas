@@ -2,7 +2,7 @@
 #include once "uzstring-fixed.bi"
 #include once "chk-zstring.bi"
 
-#define ustring UZSTRING_FIXED_MUTABLE
+#define uzstr_t UZSTRING_FIXED_MUTABLE
 
 SUITE( fbc_tests.udt_zstring_.lrset )
 
@@ -13,8 +13,8 @@ SUITE( fbc_tests.udt_zstring_.lrset )
 			dim z2 as zstring * 50 = left( src, (length2) )
 			dim e1 as zstring * 50
 
-			dim u1 as ustring = z1
-			dim u2 as ustring = z2
+			dim u1 as uzstr_t = z1
+			dim u2 as uzstr_t = z2
 
 			if( (length1) > (length2) ) then
 				e1 = (z2) & space( (length1) - (length2) )
@@ -49,8 +49,8 @@ SUITE( fbc_tests.udt_zstring_.lrset )
 			dim z2 as zstring * 50 = left( src, (length2) )
 			dim e1 as zstring * 50
 
-			dim u1 as ustring = z1
-			dim u2 as ustring = z2
+			dim u1 as uzstr_t = z1
+			dim u2 as uzstr_t = z2
 
 			if( (length1) > (length2) ) then
 				e1 = wspace( (length1) - (length2) ) & (z2)

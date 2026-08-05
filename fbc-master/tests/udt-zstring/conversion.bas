@@ -2,7 +2,7 @@
 #include once "uzstring-fixed.bi"
 #include once "chk-zstring.bi"
 
-#define ustring UZSTRING_FIXED
+#define uzstr_t UZSTRING_FIXED
 
 SUITE( fbc_tests.udt_zstring_.conversion )
 
@@ -10,7 +10,7 @@ SUITE( fbc_tests.udt_zstring_.conversion )
 
 		scope
 			dim t as zstring * 50 = str( #value )
-			dim u as ustring = t
+			dim u as uzstr_t = t
 
 				CU_ASSERT_EQUAL( func( t ), func( u ) )
 

@@ -2,7 +2,7 @@
 #include once "uwstring-fixed.bi"
 #include once "chk-wstring.bi"
 
-#define ustring UWSTRING_FIXED
+#define uwstr_t UWSTRING_FIXED
 
 SUITE( fbc_tests.udt_wstring_.asc_ )
 
@@ -11,7 +11,7 @@ SUITE( fbc_tests.udt_wstring_.asc_ )
 		for i as uinteger = 1 to 255
 			s[i-1] = i
 		next
-		dim u as ustring = s
+		dim u as uwstr_t = s
 
 		CU_ASSERT_EQUAL( asc( s ), asc( u ) )
 
@@ -31,7 +31,7 @@ SUITE( fbc_tests.udt_wstring_.asc_ )
 		for i as uinteger = 1 to 255
 			s[i-1] = i shl 8
 		next
-		dim u as ustring = s
+		dim u as uwstr_t = s
 
 		CU_ASSERT_EQUAL( asc( s ), asc( u ) )
 
