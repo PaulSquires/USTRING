@@ -260,6 +260,280 @@
 				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
 			} _
 		), _
+		/' fb_UStrLeft( src, src_size, units ) '/ _
+		( _
+			@FB_RTL_USTRLEFT, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			3, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrRight( src, src_size, units ) '/ _
+		( _
+			@FB_RTL_USTRRIGHT, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			3, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrMid( src, src_size, start, units ) '/ _
+		( _
+			@FB_RTL_USTRMID, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			4, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrAssignMid( dst, dst_size, start, units, src, src_size ) '/ _
+		( _
+			@FB_RTL_USTRASSIGNMID, NULL, _
+			FB_DATATYPE_VOID, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			6, _
+			{ _
+				( FB_DATATYPE_VOID, FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrSpace( units ) '/ _
+		( _
+			@FB_RTL_USTRSPACE, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			1, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrFill1( units, unit ) '/ _
+		( _
+			@FB_RTL_USTRFILL1, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			2, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrFill2( units, src, src_size ) '/ _
+		( _
+			@FB_RTL_USTRFILL2, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			3, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrTrim( src, src_size ) '/ _
+		( _
+			@FB_RTL_USTRTRIM, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			2, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrLTrim( src, src_size ) '/ _
+		( _
+			@FB_RTL_USTRLTRIM, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			2, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrRTrim( src, src_size ) '/ _
+		( _
+			@FB_RTL_USTRRTRIM, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			2, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrTrimEx( src, src_size, pat, pat_size ) '/ _
+		( _
+			@FB_RTL_USTRTRIMEX, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			4, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrLTrimEx( src, src_size, pat, pat_size ) '/ _
+		( _
+			@FB_RTL_USTRLTRIMEX, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			4, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrRTrimEx( src, src_size, pat, pat_size ) '/ _
+		( _
+			@FB_RTL_USTRRTRIMEX, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			4, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrTrimAny( src, src_size, set, set_size ) '/ _
+		( _
+			@FB_RTL_USTRTRIMANY, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			4, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrLTrimAny( src, src_size, set, set_size ) '/ _
+		( _
+			@FB_RTL_USTRLTRIMANY, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			4, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrRTrimAny( src, src_size, set, set_size ) '/ _
+		( _
+			@FB_RTL_USTRRTRIMANY, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			4, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrInstr( start, src, src_size, pat, pat_size ) '/ _
+		( _
+			@FB_RTL_USTRINSTR, NULL, _
+			FB_DATATYPE_INTEGER, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			5, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrInstrAny( start, src, src_size, set, set_size ) '/ _
+		( _
+			@FB_RTL_USTRINSTRANY, NULL, _
+			FB_DATATYPE_INTEGER, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			5, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrInstrRev( src, src_size, pat, pat_size, start ) '/ _
+		( _
+			@FB_RTL_USTRINSTRREV, NULL, _
+			FB_DATATYPE_INTEGER, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			5, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrInstrRevAny( src, src_size, set, set_size, start ) '/ _
+		( _
+			@FB_RTL_USTRINSTRREVANY, NULL, _
+			FB_DATATYPE_INTEGER, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			5, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrUcase( src, src_size ) '/ _
+		( _
+			@FB_RTL_USTRUCASE, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			2, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' fb_UStrLcase( src, src_size ) '/ _
+		( _
+			@FB_RTL_USTRLCASE, NULL, _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			2, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_VOID ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
 		/' end of table '/ _
 		( _
 			NULL, NULL, _
@@ -728,4 +1002,268 @@ function rtlUStrCompare _
 
 	function = proc
 
+end function
+
+'':::::
+'' Push a ustring operand as the (ptr, size) pair every ustring entry point
+'' takes. The length MUST be computed before astNewARG(), which can rewrite the
+'' expression and lose the symbol the length comes from.
+private function hPushUStrArg _
+	( _
+		byval proc as ASTNODE ptr, _
+		byval expr as ASTNODE ptr _
+	) as integer
+
+	dim as integer dtype = any
+	dim as longint lgt = any
+
+	'' anything not already a ustring is converted first, so the runtime never
+	'' sees a byte buffer described as code units
+	expr = astNewUStrConv( expr )
+
+	dtype = astGetDataType( expr )
+	lgt = rtlCalcStrLen( expr, dtype )
+
+	if( astNewARG( proc, expr, dtype ) = NULL ) then return FALSE
+	if( astNewARG( proc, astNewCONSTi( lgt ) ) = NULL ) then return FALSE
+
+	function = TRUE
+end function
+
+'':::::
+function rtlUStrLeft _
+	( _
+		byval nd_str as ASTNODE ptr, _
+		byval units as ASTNODE ptr, _
+		byval is_right as integer _
+	) as ASTNODE ptr
+
+	dim as ASTNODE ptr proc = any
+
+	function = NULL
+
+	if( is_right ) then
+		proc = astNewCALL( PROCLOOKUP( USTRRIGHT ) )
+	else
+		proc = astNewCALL( PROCLOOKUP( USTRLEFT ) )
+	end if
+
+	if( hPushUStrArg( proc, nd_str ) = FALSE ) then exit function
+	if( astNewARG( proc, units ) = NULL ) then exit function
+
+	function = proc
+end function
+
+'':::::
+function rtlUStrMid _
+	( _
+		byval nd_str as ASTNODE ptr, _
+		byval start as ASTNODE ptr, _
+		byval units as ASTNODE ptr _
+	) as ASTNODE ptr
+
+	dim as ASTNODE ptr proc = any
+
+	function = NULL
+
+	proc = astNewCALL( PROCLOOKUP( USTRMID ) )
+
+	if( hPushUStrArg( proc, nd_str ) = FALSE ) then exit function
+	if( astNewARG( proc, start ) = NULL ) then exit function
+
+	'' a negative count means "to the end", which is what the parser passes
+	'' when the third argument was omitted
+	if( units = NULL ) then
+		units = astNewCONSTi( -1 )
+	end if
+	if( astNewARG( proc, units ) = NULL ) then exit function
+
+	function = proc
+end function
+
+'':::::
+function rtlUStrAssignMid _
+	( _
+		byval dst as ASTNODE ptr, _
+		byval start as ASTNODE ptr, _
+		byval units as ASTNODE ptr, _
+		byval src as ASTNODE ptr _
+	) as ASTNODE ptr
+
+	dim as ASTNODE ptr proc = any
+
+	function = NULL
+
+	proc = astNewCALL( PROCLOOKUP( USTRASSIGNMID ) )
+
+	if( hPushUStrArg( proc, dst ) = FALSE ) then exit function
+	if( astNewARG( proc, start ) = NULL ) then exit function
+
+	if( units = NULL ) then
+		units = astNewCONSTi( -1 )
+	end if
+	if( astNewARG( proc, units ) = NULL ) then exit function
+
+	if( hPushUStrArg( proc, src ) = FALSE ) then exit function
+
+	astSetType( proc, FB_DATATYPE_VOID, NULL )
+
+	function = proc
+end function
+
+'':::::
+function rtlUStrTrim _
+	( _
+		byval nd_str as ASTNODE ptr, _
+		byval pattern as ASTNODE ptr, _
+		byval is_any as integer, _
+		byval mode as integer _
+	) as ASTNODE ptr
+
+	dim as ASTNODE ptr proc = any
+	dim as FBSYMBOL ptr f = any
+
+	function = NULL
+
+	'' mode: 0 = trim, 1 = ltrim, 2 = rtrim
+	if( is_any ) then
+		select case mode
+		case 1 : f = PROCLOOKUP( USTRLTRIMANY )
+		case 2 : f = PROCLOOKUP( USTRRTRIMANY )
+		case else : f = PROCLOOKUP( USTRTRIMANY )
+		end select
+	elseif( pattern <> NULL ) then
+		select case mode
+		case 1 : f = PROCLOOKUP( USTRLTRIMEX )
+		case 2 : f = PROCLOOKUP( USTRRTRIMEX )
+		case else : f = PROCLOOKUP( USTRTRIMEX )
+		end select
+	else
+		select case mode
+		case 1 : f = PROCLOOKUP( USTRLTRIM )
+		case 2 : f = PROCLOOKUP( USTRRTRIM )
+		case else : f = PROCLOOKUP( USTRTRIM )
+		end select
+	end if
+
+	proc = astNewCALL( f )
+
+	if( hPushUStrArg( proc, nd_str ) = FALSE ) then exit function
+
+	if( (pattern <> NULL) or is_any ) then
+		if( hPushUStrArg( proc, pattern ) = FALSE ) then exit function
+	end if
+
+	function = proc
+end function
+
+'':::::
+function rtlUStrInstr _
+	( _
+		byval start as ASTNODE ptr, _
+		byval nd_str as ASTNODE ptr, _
+		byval pattern as ASTNODE ptr, _
+		byval is_any as integer _
+	) as ASTNODE ptr
+
+	dim as ASTNODE ptr proc = any
+
+	function = NULL
+
+	if( is_any ) then
+		proc = astNewCALL( PROCLOOKUP( USTRINSTRANY ) )
+	else
+		proc = astNewCALL( PROCLOOKUP( USTRINSTR ) )
+	end if
+
+	if( start = NULL ) then
+		start = astNewCONSTi( 1 )
+	end if
+	if( astNewARG( proc, start ) = NULL ) then exit function
+
+	if( hPushUStrArg( proc, nd_str ) = FALSE ) then exit function
+	if( hPushUStrArg( proc, pattern ) = FALSE ) then exit function
+
+	function = proc
+end function
+
+'':::::
+function rtlUStrInstrRev _
+	( _
+		byval nd_str as ASTNODE ptr, _
+		byval pattern as ASTNODE ptr, _
+		byval start as ASTNODE ptr, _
+		byval is_any as integer _
+	) as ASTNODE ptr
+
+	dim as ASTNODE ptr proc = any
+
+	function = NULL
+
+	if( is_any ) then
+		proc = astNewCALL( PROCLOOKUP( USTRINSTRREVANY ) )
+	else
+		proc = astNewCALL( PROCLOOKUP( USTRINSTRREV ) )
+	end if
+
+	if( hPushUStrArg( proc, nd_str ) = FALSE ) then exit function
+	if( hPushUStrArg( proc, pattern ) = FALSE ) then exit function
+
+	'' a negative start means "from the end"
+	if( start = NULL ) then
+		start = astNewCONSTi( -1 )
+	end if
+	if( astNewARG( proc, start ) = NULL ) then exit function
+
+	function = proc
+end function
+
+'':::::
+function rtlUStrCase _
+	( _
+		byval nd_str as ASTNODE ptr, _
+		byval is_upper as integer _
+	) as ASTNODE ptr
+
+	dim as ASTNODE ptr proc = any
+
+	function = NULL
+
+	if( is_upper ) then
+		proc = astNewCALL( PROCLOOKUP( USTRUCASE ) )
+	else
+		proc = astNewCALL( PROCLOOKUP( USTRLCASE ) )
+	end if
+
+	if( hPushUStrArg( proc, nd_str ) = FALSE ) then exit function
+
+	function = proc
+end function
+
+'':::::
+'' SPACE( n ) and STRING( n, x ) for ustrings
+function rtlUStrFill _
+	( _
+		byval units as ASTNODE ptr, _
+		byval fill as ASTNODE ptr _
+	) as ASTNODE ptr
+
+	dim as ASTNODE ptr proc = any
+
+	function = NULL
+
+	if( fill = NULL ) then
+		proc = astNewCALL( PROCLOOKUP( USTRSPACE ) )
+		if( astNewARG( proc, units ) = NULL ) then exit function
+	elseif( typeGetClass( astGetDataType( fill ) ) = FB_DATACLASS_INTEGER ) then
+		proc = astNewCALL( PROCLOOKUP( USTRFILL1 ) )
+		if( astNewARG( proc, units ) = NULL ) then exit function
+		if( astNewARG( proc, fill ) = NULL ) then exit function
+	else
+		proc = astNewCALL( PROCLOOKUP( USTRFILL2 ) )
+		if( astNewARG( proc, units ) = NULL ) then exit function
+		if( hPushUStrArg( proc, fill ) = FALSE ) then exit function
+	end if
+
+	function = proc
 end function

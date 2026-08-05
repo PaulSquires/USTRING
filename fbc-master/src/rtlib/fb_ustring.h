@@ -269,4 +269,44 @@ FBCALL FB_WCHAR    *fb_UStrAssignToW     ( FB_WCHAR *dst, ssize_t dst_chars, voi
 FBCALL FBUSTRING   *fb_WstrToUStr        ( const FB_WCHAR *src );
 FBCALL FB_WCHAR    *fb_UStrToWstr        ( void *src, ssize_t src_size );
 
+
+/* ------------------------------------------------------------- intrinsics
+ * Positions and lengths are CODE UNITS and 1-based, matching LEN() and []
+ * indexing. Searching by code unit is safe for UTF-16 without surrogate
+ * awareness: a surrogate half can never equal a BMP unit, so a match cannot
+ * land mid-character.
+ */
+FBCALL FBUSTRING   *fb_UStrLeft          ( void *src, ssize_t src_size, ssize_t units );
+FBCALL FBUSTRING   *fb_UStrRight         ( void *src, ssize_t src_size, ssize_t units );
+/* two-parameter forms, for the LEFT/RIGHT overload entries */
+FBCALL FBUSTRING   *fb_UStrLeftD         ( FBUSTRING *src, ssize_t units );
+FBCALL FBUSTRING   *fb_UStrRightD        ( FBUSTRING *src, ssize_t units );
+FBCALL FBUSTRING   *fb_UStrMid           ( void *src, ssize_t src_size, ssize_t start, ssize_t units );
+FBCALL void         fb_UStrAssignMid     ( void *dst, ssize_t dst_size, ssize_t start, ssize_t units, void *src, ssize_t src_size );
+FBCALL FBUSTRING   *fb_UStrSpace         ( ssize_t units );
+FBCALL FBUSTRING   *fb_UStrFill1         ( ssize_t units, int unit );
+FBCALL FBUSTRING   *fb_UStrFill2         ( ssize_t units, void *src, ssize_t src_size );
+
+FBCALL FBUSTRING   *fb_UStrTrim          ( void *src, ssize_t src_size );
+FBCALL FBUSTRING   *fb_UStrLTrim         ( void *src, ssize_t src_size );
+FBCALL FBUSTRING   *fb_UStrRTrim         ( void *src, ssize_t src_size );
+FBCALL FBUSTRING   *fb_UStrTrimEx        ( void *src, ssize_t src_size, void *pat, ssize_t pat_size );
+FBCALL FBUSTRING   *fb_UStrLTrimEx       ( void *src, ssize_t src_size, void *pat, ssize_t pat_size );
+FBCALL FBUSTRING   *fb_UStrRTrimEx       ( void *src, ssize_t src_size, void *pat, ssize_t pat_size );
+FBCALL FBUSTRING   *fb_UStrTrimAny       ( void *src, ssize_t src_size, void *set, ssize_t set_size );
+FBCALL FBUSTRING   *fb_UStrLTrimAny      ( void *src, ssize_t src_size, void *set, ssize_t set_size );
+FBCALL FBUSTRING   *fb_UStrRTrimAny      ( void *src, ssize_t src_size, void *set, ssize_t set_size );
+
+FBCALL ssize_t      fb_UStrInstr         ( ssize_t start, void *src, ssize_t src_size, void *pat, ssize_t pat_size );
+FBCALL ssize_t      fb_UStrInstrAny      ( ssize_t start, void *src, ssize_t src_size, void *set, ssize_t set_size );
+FBCALL ssize_t      fb_UStrInstrRev      ( void *src, ssize_t src_size, void *pat, ssize_t pat_size, ssize_t start );
+FBCALL ssize_t      fb_UStrInstrRevAny   ( void *src, ssize_t src_size, void *set, ssize_t set_size, ssize_t start );
+
+/* Simple case mapping, from the generated table in ustr_casetable.c.
+ * NOT towupper()/towlower(), which are locale-dependent. */
+FB_UCHAR            fb_hUStrToUpper      ( FB_UCHAR c );
+FB_UCHAR            fb_hUStrToLower      ( FB_UCHAR c );
+FBCALL FBUSTRING   *fb_UStrUcase         ( void *src, ssize_t src_size );
+FBCALL FBUSTRING   *fb_UStrLcase         ( void *src, ssize_t src_size );
+
 #endif /*__FB_USTRING_H__*/

@@ -37,6 +37,28 @@
 #define FB_RTL_USTRASSIGNTOW            "fb_UStrAssignToW"
 #define FB_RTL_WSTR2USTR                "fb_WstrToUStr"
 #define FB_RTL_USTR2WSTR                "fb_UStrToWstr"
+#define FB_RTL_USTRLEFT                    "fb_UStrLeft"
+#define FB_RTL_USTRRIGHT                   "fb_UStrRight"
+#define FB_RTL_USTRMID                     "fb_UStrMid"
+#define FB_RTL_USTRASSIGNMID               "fb_UStrAssignMid"
+#define FB_RTL_USTRSPACE                   "fb_UStrSpace"
+#define FB_RTL_USTRFILL1                   "fb_UStrFill1"
+#define FB_RTL_USTRFILL2                   "fb_UStrFill2"
+#define FB_RTL_USTRTRIM                    "fb_UStrTrim"
+#define FB_RTL_USTRLTRIM                   "fb_UStrLTrim"
+#define FB_RTL_USTRRTRIM                   "fb_UStrRTrim"
+#define FB_RTL_USTRTRIMEX                  "fb_UStrTrimEx"
+#define FB_RTL_USTRLTRIMEX                 "fb_UStrLTrimEx"
+#define FB_RTL_USTRRTRIMEX                 "fb_UStrRTrimEx"
+#define FB_RTL_USTRTRIMANY                 "fb_UStrTrimAny"
+#define FB_RTL_USTRLTRIMANY                "fb_UStrLTrimAny"
+#define FB_RTL_USTRRTRIMANY                "fb_UStrRTrimAny"
+#define FB_RTL_USTRINSTR                   "fb_UStrInstr"
+#define FB_RTL_USTRINSTRANY                "fb_UStrInstrAny"
+#define FB_RTL_USTRINSTRREV                "fb_UStrInstrRev"
+#define FB_RTL_USTRINSTRREVANY             "fb_UStrInstrRevAny"
+#define FB_RTL_USTRUCASE                   "fb_UStrUcase"
+#define FB_RTL_USTRLCASE                   "fb_UStrLcase"
 
 #define FB_RTL_BOOL2STR                 "fb_BoolToStr"
 #define FB_RTL_INT2STR                  "fb_IntToStr"
@@ -890,6 +912,28 @@ enum FB_RTL_IDX
 	FB_RTL_IDX_USTRASSIGNTOW
 	FB_RTL_IDX_WSTR2USTR
 	FB_RTL_IDX_USTR2WSTR
+	FB_RTL_IDX_USTRLEFT
+	FB_RTL_IDX_USTRRIGHT
+	FB_RTL_IDX_USTRMID
+	FB_RTL_IDX_USTRASSIGNMID
+	FB_RTL_IDX_USTRSPACE
+	FB_RTL_IDX_USTRFILL1
+	FB_RTL_IDX_USTRFILL2
+	FB_RTL_IDX_USTRTRIM
+	FB_RTL_IDX_USTRLTRIM
+	FB_RTL_IDX_USTRRTRIM
+	FB_RTL_IDX_USTRTRIMEX
+	FB_RTL_IDX_USTRLTRIMEX
+	FB_RTL_IDX_USTRRTRIMEX
+	FB_RTL_IDX_USTRTRIMANY
+	FB_RTL_IDX_USTRLTRIMANY
+	FB_RTL_IDX_USTRRTRIMANY
+	FB_RTL_IDX_USTRINSTR
+	FB_RTL_IDX_USTRINSTRANY
+	FB_RTL_IDX_USTRINSTRREV
+	FB_RTL_IDX_USTRINSTRREVANY
+	FB_RTL_IDX_USTRUCASE
+	FB_RTL_IDX_USTRLCASE
 
 	FB_RTL_INDEXES
 end enum
@@ -1077,6 +1121,15 @@ declare function rtlWstrToUStr( byval expr as ASTNODE ptr ) as ASTNODE ptr
 declare function rtlUStrAssignToW( byval dst as ASTNODE ptr, byval src as ASTNODE ptr ) as ASTNODE ptr
 declare function rtlUStrToWstr( byval expr as ASTNODE ptr ) as ASTNODE ptr
 declare function rtlUStrToStr( byval expr as ASTNODE ptr ) as ASTNODE ptr
+
+declare function rtlUStrLeft( byval nd_str as ASTNODE ptr, byval units as ASTNODE ptr, byval is_right as integer ) as ASTNODE ptr
+declare function rtlUStrMid( byval nd_str as ASTNODE ptr, byval start as ASTNODE ptr, byval units as ASTNODE ptr ) as ASTNODE ptr
+declare function rtlUStrAssignMid( byval dst as ASTNODE ptr, byval start as ASTNODE ptr, byval units as ASTNODE ptr, byval src as ASTNODE ptr ) as ASTNODE ptr
+declare function rtlUStrTrim( byval nd_str as ASTNODE ptr, byval pattern as ASTNODE ptr, byval is_any as integer, byval mode as integer ) as ASTNODE ptr
+declare function rtlUStrInstr( byval start as ASTNODE ptr, byval nd_str as ASTNODE ptr, byval pattern as ASTNODE ptr, byval is_any as integer ) as ASTNODE ptr
+declare function rtlUStrInstrRev( byval nd_str as ASTNODE ptr, byval pattern as ASTNODE ptr, byval start as ASTNODE ptr, byval is_any as integer ) as ASTNODE ptr
+declare function rtlUStrCase( byval nd_str as ASTNODE ptr, byval is_upper as integer ) as ASTNODE ptr
+declare function rtlUStrFill( byval units as ASTNODE ptr, byval fill as ASTNODE ptr ) as ASTNODE ptr
 declare function rtlUStrDelete( byval expr as ASTNODE ptr ) as ASTNODE ptr
 declare function rtlUStrLen( byval expr as ASTNODE ptr ) as ASTNODE ptr
 

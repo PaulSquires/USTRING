@@ -1916,6 +1916,17 @@
 				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
 			} _
 		), _
+		/' function left overload( byref src as const ustring, byval units as const integer ) as ustring '/ _
+		( _
+			@"left", @"fb_UStrLeftD", _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_OVER or FB_RTL_OPT_NOQB, _
+			2, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_USTRING ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
 		/' sub fb_leftself overload( byref str as string, byval chars as const integer )'/ _
 		( _
 			@"fb_LeftSelf", @"fb_LEFTSELF", _
@@ -1946,6 +1957,17 @@
 			2, _
 			{ _
 				( typeSetIsConst( FB_DATATYPE_WCHAR ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' function right overload( byref src as const ustring, byval units as const integer ) as ustring '/ _
+		( _
+			@"right", @"fb_UStrRightD", _
+			FB_DATATYPE_USTRING, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_OVER or FB_RTL_OPT_NOQB, _
+			2, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_USTRING ), FB_PARAMMODE_BYREF, FALSE ), _
 				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
 			} _
 		), _
@@ -3158,6 +3180,13 @@ function rtlStrMid _
 		byval expr3 as ASTNODE ptr _
 	) as ASTNODE ptr
 
+	'' ustring? The narrow/wide bodies below select byte- or wchar-oriented
+	'' runtime functions and push bare pointers; a ustring needs (ptr,size)
+	'' pairs, so it is handled by its own builder.
+	if( typeIsUstring( astGetDataType( expr1 ) ) ) then
+		return rtlUStrMid( expr1, expr2, expr3 )
+	end if
+
 	dim as ASTNODE ptr proc = any
 
 	function = NULL
@@ -3195,6 +3224,13 @@ function rtlStrAssignMid _
 		byval expr3 as ASTNODE ptr, _
 		byval expr4 as ASTNODE ptr _
 	) as ASTNODE ptr
+
+	'' ustring? The narrow/wide bodies below select byte- or wchar-oriented
+	'' runtime functions and push bare pointers; a ustring needs (ptr,size)
+	'' pairs, so it is handled by its own builder.
+	if( typeIsUstring( astGetDataType( expr1 ) ) ) then
+		return rtlUStrAssignMid( expr1, expr2, expr3, expr4 )
+	end if
 
 	dim as ASTNODE ptr proc = any
 	dim as longint dst_len = any
@@ -3512,6 +3548,13 @@ function rtlStrInstr _
 		byval search_any as integer _
 	) as ASTNODE ptr
 
+	'' ustring? The narrow/wide bodies below select byte- or wchar-oriented
+	'' runtime functions and push bare pointers; a ustring needs (ptr,size)
+	'' pairs, so it is handled by its own builder.
+	if( typeIsUstring( astGetDataType( nd_text ) ) ) then
+		return rtlUStrInstr( nd_start, nd_text, nd_pattern, search_any )
+	end if
+
 	dim as ASTNODE ptr proc = any
 	dim as FBSYMBOL ptr f = any
 	dim as integer dtype = any
@@ -3568,6 +3611,13 @@ function rtlStrInstrRev _
 		byval search_any as integer _
 	) as ASTNODE ptr
 
+	'' ustring? The narrow/wide bodies below select byte- or wchar-oriented
+	'' runtime functions and push bare pointers; a ustring needs (ptr,size)
+	'' pairs, so it is handled by its own builder.
+	if( typeIsUstring( astGetDataType( nd_text ) ) ) then
+		return rtlUStrInstrRev( nd_text, nd_pattern, nd_start, search_any )
+	end if
+
 	dim as ASTNODE ptr proc = any
 	dim as FBSYMBOL ptr f = any
 	dim as integer dtype = any
@@ -3622,6 +3672,13 @@ function rtlStrTrim _
 		byval nd_pattern as ASTNODE ptr, _
 		byval is_any as integer _
 	) as ASTNODE ptr
+
+	'' ustring? The narrow/wide bodies below select byte- or wchar-oriented
+	'' runtime functions and push bare pointers; a ustring needs (ptr,size)
+	'' pairs, so it is handled by its own builder.
+	if( typeIsUstring( astGetDataType( nd_text ) ) ) then
+		return rtlUStrTrim( nd_text, nd_pattern, is_any, 0 )
+	end if
 
 	dim as ASTNODE ptr proc = any
 	dim as FBSYMBOL ptr f = any
@@ -3681,6 +3738,13 @@ function rtlStrRTrim _
 		byval is_any as integer _
 	) as ASTNODE ptr
 
+	'' ustring? The narrow/wide bodies below select byte- or wchar-oriented
+	'' runtime functions and push bare pointers; a ustring needs (ptr,size)
+	'' pairs, so it is handled by its own builder.
+	if( typeIsUstring( astGetDataType( nd_text ) ) ) then
+		return rtlUStrTrim( nd_text, nd_pattern, is_any, 2 )
+	end if
+
 	dim as ASTNODE ptr proc = any
 	dim as FBSYMBOL ptr f = any
 	dim as integer dtype = any
@@ -3738,6 +3802,13 @@ function rtlStrLTrim _
 		byval nd_pattern as ASTNODE ptr, _
 		byval is_any as integer _
 	) as ASTNODE ptr
+
+	'' ustring? The narrow/wide bodies below select byte- or wchar-oriented
+	'' runtime functions and push bare pointers; a ustring needs (ptr,size)
+	'' pairs, so it is handled by its own builder.
+	if( typeIsUstring( astGetDataType( nd_text ) ) ) then
+		return rtlUStrTrim( nd_text, nd_pattern, is_any, 1 )
+	end if
 
 	dim as ASTNODE ptr proc = any
 	dim as FBSYMBOL ptr f = any
@@ -3870,6 +3941,13 @@ function rtlStrCase _
 		byval mode as ASTNODE ptr, _
 		byval is_lcase as integer _
 	) as ASTNODE ptr
+
+	'' ustring? The narrow/wide bodies below select byte- or wchar-oriented
+	'' runtime functions and push bare pointers; a ustring needs (ptr,size)
+	'' pairs, so it is handled by its own builder.
+	if( typeIsUstring( astGetDataType( expr ) ) ) then
+		return rtlUStrCase( expr, is_lcase = FALSE )
+	end if
 
 	dim as ASTNODE ptr proc = any
 	dim as FBSYMBOL ptr f = any, literal = any

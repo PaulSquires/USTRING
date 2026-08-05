@@ -19,6 +19,16 @@ sub chk( byref nm as string, byval got as longint, byval want as longint )
 	end if
 end sub
 
+sub chks( byref nm as string, byref got as ustring, byref want as ustring )
+    g_run += 1
+    if( got <> want ) then
+        g_fail += 1
+        dim as string a, b : a = got : b = want
+        print "FAIL "; nm; " got=["; a; "] want=["; b; "]"
+    end if
+end sub
+
+
 '' -- phase 2b: wstring interop, overloads, copy-back ------------------
 
 sub wmodify( byref u as ustring )
@@ -332,6 +342,64 @@ chk( "native ustring modified byref", len(cu), 2 )
 '' where it is wider the compiler warns and re-encodes.
 wtakeptr( ou )
 chk( "ustring passed as wstring ptr", g_ptrlen, 1 )
+
+'' ================================================================ PHASE 3
+'' Intrinsics. Positions and lengths are CODE UNITS and 1-based, matching
+'' LEN() and [] indexing.
+
+dim as ustring i3 = "Hello World"
+chks( "LEFT", left(i3, 5), "Hello" )
+chks( "RIGHT", right(i3, 5), "World" )
+chks( "MID 2-arg", mid(i3, 7), "World" )
+chks( "MID 3-arg", mid(i3, 1, 5), "Hello" )
+chk ( "INSTR", instr(i3, "World"), 7 )
+chk ( "INSTR not found is 0", instr(i3, "zzz"), 0 )
+chk ( "INSTR with start", instr(4, i3, "l"), 4 )
+chk ( "INSTRREV", instrrev(i3, "l"), 10 )
+chks( "UCASE", ucase(i3), "HELLO WORLD" )
+chks( "LCASE", lcase(i3), "hello world" )
+
+dim as ustring i3pad = "  xy  "
+chks( "TRIM", trim(i3pad), "xy" )
+chks( "LTRIM", ltrim(i3pad), "xy  " )
+chks( "RTRIM", rtrim(i3pad), "  xy" )
+chks( "TRIM ANY", trim("--ab--", any "-"), "ab" )
+chk ( "SPACE", len(space(4)), 4 )
+chks( "STRING n,code", string(3, asc("z")), "zzz" )
+
+'' ---------------------------------------------- Unicode case mapping
+'' From the generated BMP table, NOT towupper/towlower -- those are
+'' locale-dependent and would fold differently per platform and per libc.
+dim as ustring xl1 = "éèç"
+dim as ustring xu1 = "ÉÈÇ"
+chks( "UCASE latin-1 accents", ucase(xl1), xu1 )
+chks( "LCASE latin-1 accents", lcase(xu1), xl1 )
+
+dim as ustring xl2 = "αβγ"
+dim as ustring xu2 = "ΑΒΓ"
+chks( "UCASE greek", ucase(xl2), xu2 )
+chks( "LCASE greek", lcase(xu2), xl2 )
+
+dim as ustring xl3 = "абв"
+dim as ustring xu3 = "АБВ"
+chks( "UCASE cyrillic", ucase(xl3), xu3 )
+
+'' An astral character has no simple case mapping. It must pass through
+'' untouched rather than having its surrogate halves mapped independently,
+'' which would corrupt the character.
+dim as ustring xast = "𝄞"
+chks( "UCASE leaves astral alone", ucase(xast), xast )
+chk ( "astral still 2 units after UCASE", len(ucase(xast)), 2 )
+
+dim as ustring xcjk = "中文"
+chks( "UCASE leaves CJK alone", ucase(xcjk), xcjk )
+
+'' slicing is unit-based, so an astral character occupies two positions
+dim as ustring xmix = "a𝄞z"
+chk ( "mixed len is 4 units", len(xmix), 4 )
+chks( "LEFT 1 of mixed", left(xmix,1), "a" )
+chks( "RIGHT 1 of mixed", right(xmix,1), "z" )
+chk ( "INSTR finds z at unit 4", instr(xmix, "z"), 4 )
 
 print g_run; " checks,"; g_fail; " failed"
 if( g_fail <> 0 ) then

@@ -197,7 +197,47 @@ for exactly the arguments that need it.
 
 **Phase 2 is complete.**
 
+## Phase 3 — intrinsics (core done)
+
+`LEFT`, `RIGHT`, `MID` (function and statement), `INSTR`, `INSTRREV` (+`ANY`),
+`TRIM`/`LTRIM`/`RTRIM` (+`ANY`/`EX`), `UCASE`, `LCASE`, `SPACE`, `STRING()`.
+
+Positions and lengths are **code units**, 1-based. Searching by code unit is
+safe for UTF-16 without any surrogate awareness: a surrogate half can never
+equal a BMP unit, so a match cannot land mid-character — the thing a naive byte
+search over UTF-8 would get wrong.
+
+### The case table
+
+`towupper`/`towlower` are unusable: they are locale-dependent, so the same
+ustring would fold differently depending on the user's locale and on which libc
+the program linked against. That is the platform divergence this type exists to
+remove.
+
+`tools/gen_case_table.py` generates `src/rtlib/ustr_casetable.c` from Python's
+`unicodedata` (Unicode 15.1.0), as `[lo, hi, delta]` runs — ~660 runs per
+direction instead of ~1170 pairs, binary searched. **Simple** mappings only: one
+unit in, one out. Full case mapping can produce more than one character (German
+sharp s upper-casing to `SS`), which an in-place unit transform cannot express
+and which no other FB string type does either.
+
+Surrogates are left alone. Mapping the halves of a pair independently would
+corrupt the character, so an astral character passes through `UCASE` unchanged.
+
+Verified for Latin-1 accents, Greek and Cyrillic, plus astral and CJK
+pass-through.
+
+### Still owed in Phase 3
+
+`LSET`/`RSET`, `SWAP`, `ASC`/`CHR`, the `VAL` family, `HEX`/`OCT`/`BIN`,
+`STR`/`USTR`, `[]` indexing and `STRPTR`/`SADD`.
+
+`LEFT` and `RIGHT` needed two-parameter descriptor wrappers
+(`fb_UStrLeftD`/`fb_UStrRightD`): they are registered as true overloads aliased
+straight to a C function, so their signature is fixed and cannot carry the
+`(ptr,size)` pair the rest of the API uses.
+
 ## Later phases
 
-Phase 3 is the intrinsic surface, including a generated BMP case-mapping table,
-since `towlower` is locale-dependent and would reintroduce platform divergence.
+Phase 4 is aggregates and the remaining backends, Phase 5 I/O, Phase 6 upstream
+packaging.
