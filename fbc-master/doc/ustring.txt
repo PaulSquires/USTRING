@@ -130,6 +130,14 @@ Where the output goes decides the encoding:
 That second case is the point: a ustring written to a file produces a portable
 UTF-8 file on every platform. LINE INPUT # and INPUT # decode UTF-8 to match.
 
+PRINT USING counts CODE UNITS in its field widths, matching LEN and []. It
+parses in UTF-16 rather than converting to UTF-8 first, so "\   \" applied to
+a five-character accented string yields all five characters and not the first
+three -- and yields the same thing whether the output is a console or a file.
+
+A field can split a surrogate pair, exactly as MID can. That is a property of
+UTF-16, not of PRINT USING.
+
 OPEN ... ENCODING is not wired for USTRING -- a ustring file is UTF-8 by
 construction.
 

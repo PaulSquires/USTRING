@@ -320,4 +320,9 @@ FBCALL void         fb_UStrSwap          ( void *str1, ssize_t size1, void *str2
 FBCALL void         fb_PrintUStr         ( int fnum, FBUSTRING *src, int mask );
 FBCALL void         fb_WriteUStr         ( int fnum, FBUSTRING *src, int mask );
 
+/* PRINT USING. Lives in io_printusg.c, beside the narrow and wide versions,
+ * because it needs that file's format-string context. Field widths count CODE
+ * UNITS -- see the note there for why it cannot just convert and delegate. */
+FBCALL int          fb_PrintUsingUStr    ( int fnum, FBUSTRING *src, int mask );
+
 #endif /*__FB_USTRING_H__*/

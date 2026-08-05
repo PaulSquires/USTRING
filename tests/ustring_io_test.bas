@@ -97,6 +97,48 @@ close #f
 '' WRITE quotes its output
 chks( "WRITE # quotes", q, """" + w1 + """" )
 
+'' ------------------------------------------------- PRINT USING
+''
+'' FIELD WIDTHS COUNT CODE UNITS, not bytes. That is the whole reason
+'' fb_PrintUsingUStr parses in UTF-16 instead of converting to UTF-8 and
+'' delegating to fb_PrintUsingStr: a byte-counting field would slice "héllo"
+'' after "hél", and only when the output happened to be redirected.
+
+#macro chkusg( nm, fmt, arg, want )
+    scope
+        dim as integer uf = freefile
+        open TMPF for output as #uf
+        print #uf, using fmt; arg;
+        close #uf
+        dim as integer ug = freefile
+        dim as ustring ur
+        open TMPF for input as #ug
+        line input #ug, ur
+        close #ug
+        chks( nm, ur, want )
+    end scope
+#endmacro
+
+dim as ustring pu = "héllo"
+chkusg( "USING exact field",     "[\   \]", pu, "[héllo]" )
+chkusg( "USING counts units",    "[\  \]",  pu, "[héll]" )
+chkusg( "USING pads short",      "[\      \]", pu, "[héllo   ]" )
+chkusg( "USING ! is one unit",   "[!]",      pu, "[h]" )
+chkusg( "USING & is whole",      "[&]",      pu, "[héllo]" )
+
+'' A surrogate pair is 2 units, so a 3-unit field holds "a" plus the pair
+'' whole, and a 2-unit field splits it -- exactly as MID does. Splitting is a
+'' property of UTF-16, not of PRINT USING.
+dim as ustring pm = "a" + wchr(&h1D11E) + "b"
+chk   ( "astral arg is 4 units", len(pm), 4 )
+chkusg( "USING keeps pair whole", "[\ \]", pm, "[a" + wchr(&h1D11E) + "]" )
+
+'' A USTRING * N argument, and a USTRING used AS the format string
+dim as ustring * 8 pf = "world"
+chkusg( "USING fixed-length arg", "[\   \]", pf, "[world]" )
+dim as ustring pfmt = "<\   \>"
+chkusg( "USING ustring format",   pfmt, pu, "<héllo>" )
+
 kill TMPF
 
 print g_run; " checks,"; g_fail; " failed"

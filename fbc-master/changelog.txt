@@ -28,6 +28,9 @@ Version 1.20.0
   reinterpret where wchar_t is 16 bits (Windows); where it is wider the text is
   re-encoded and a warning is emitted, so the cost is not invisible to someone
   developing on Windows.
+- USTRING: PRINT USING is supported. Field widths count CODE UNITS, matching
+  LEN and [], so a format field lines up with the string's own idea of its
+  length regardless of where the output goes.
 - USTRING is gated out of '-lang qb', as ZSTRING and WSTRING already are.
 
 [changed]

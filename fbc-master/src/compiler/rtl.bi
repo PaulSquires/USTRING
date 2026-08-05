@@ -290,6 +290,7 @@
 #define FB_RTL_PRINTUSGINIT             "fb_PrintUsingInit"
 #define FB_RTL_PRINTUSGSTR              "fb_PrintUsingStr"
 #define FB_RTL_PRINTUSGWSTR             "fb_PrintUsingWstr"
+#define FB_RTL_PRINTUSGUSTR             "fb_PrintUsingUStr"
 #define FB_RTL_PRINTUSG_SNG             "fb_PrintUsingSingle"
 #define FB_RTL_PRINTUSG_DBL             "fb_PrintUsingDouble"
 #define FB_RTL_PRINTUSG_LL              "fb_PrintUsingLongint"
@@ -718,6 +719,7 @@ enum FB_RTL_IDX
 	FB_RTL_IDX_PRINTUSGINIT
 	FB_RTL_IDX_PRINTUSGSTR
 	FB_RTL_IDX_PRINTUSGWSTR
+	FB_RTL_IDX_PRINTUSGUSTR
 	FB_RTL_IDX_PRINTUSG_SNG
 	FB_RTL_IDX_PRINTUSG_DBL
 	FB_RTL_IDX_PRINTUSG_LL

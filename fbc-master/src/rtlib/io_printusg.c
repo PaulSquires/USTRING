@@ -544,6 +544,163 @@ FBCALL int fb_PrintUsingWstr( int fnum, FB_WCHAR *s, int mask )
 	return fb_ErrorSetNum( FB_RTERROR_OK );
 }
 
+/* Emit a run of code units.
+**
+** Wrapping the run in a STACK descriptor and handing it to fb_PrintUStr keeps
+** the encoding decision -- real Windows console takes the wide path, everything
+** else gets UTF-8 -- in exactly one place (ustr_print.c). The descriptor is not
+** from the temp pool and its len has no FB_TEMPSTRBIT, so nothing frees it. */
+static void hPrintUnits( int fnum, const FB_UCHAR *p, ssize_t units )
+{
+	FBUSTRING d;
+
+	d.data = (FB_UCHAR *)p;
+	d.len  = units;
+	d.size = units;
+
+	fb_PrintUStr( fnum, &d, 0 );
+}
+
+/* PRINT USING for ustrings.
+**
+** FIELD WIDTHS COUNT CODE UNITS
+**
+** This parses into a FB_UCHAR buffer rather than delegating to
+** fb_PrintUsingStr after a UTF-8 conversion, which would have been far less
+** code. It cannot: fb_PrintUsingStr counts BYTES, so "\   \" applied to five
+** accented characters would consume ten bytes of a five-unit field and
+** truncate. Worse, the truncation would depend on where the output was going,
+** since only the redirected path is UTF-8 -- the same program would format
+** differently into a file than onto a console.
+**
+** Counting code units also matches LEN, [], and every position in
+** LEFT/MID/INSTR, so a format field lines up with what the rest of the type
+** says the string's length is. */
+FBCALL int fb_PrintUsingUStr( int fnum, FBUSTRING *s, int mask )
+{
+	FB_PRINTUSGCTX *ctx;
+	FB_UCHAR buffer[BUFFERLEN+1];
+	const FB_UCHAR *sptr;
+	int c, nc, strchars, doexit, i;
+	ssize_t length;
+
+	ctx = FB_TLSGETCTX( PRINTUSG );
+
+	/* restart if needed */
+	if( ctx->chars == 0 ) {
+		ctx->ptr = ctx->fmtstr.data;
+		ctx->chars = FB_STRSIZE( &ctx->fmtstr );
+	}
+
+	/* any text first */
+	fb_PrintUsingFmtStr( fnum );
+
+	strchars = -1;
+
+	if( (s != NULL) && (s->data != NULL) ) {
+		sptr = s->data;
+		length = FB_USTRSIZE( s );
+	} else {
+		sptr = NULL;
+		length = 0;
+	}
+
+	if( ctx->ptr == NULL )
+		ctx->chars = 0;
+
+	while( ctx->chars > 0 ) {
+		c = *ctx->ptr;
+		nc = ctx->chars > 1 ? ctx->ptr[1] : -1;
+
+		doexit = TRUE;
+		switch( c ) {
+		case '!':
+			/* Note: a '!' field is ONE CODE UNIT, so it can halve a surrogate
+			   pair. That is the same answer WSTRING gives on Windows, and the
+			   same one MID gives here -- a property of UTF-16, not of this
+			   routine. */
+			buffer[0] = (length >= 1) ? sptr[0] : (FB_UCHAR)' ';
+			buffer[1] = 0;
+			hPrintUnits( fnum, buffer, 1 );
+
+			++ctx->ptr;
+			--ctx->chars;
+			break;
+
+		case '&':
+			hPrintUnits( fnum, sptr, length );
+
+			++ctx->ptr;
+			--ctx->chars;
+			break;
+
+		case '\\':
+			if( (strchars != -1) || (nc == ' ') || (nc == '\\') ) {
+				if( strchars > 0 ) {
+					++strchars;
+
+					if( strchars > BUFFERLEN )
+						strchars = BUFFERLEN;
+
+					if( length < strchars ) {
+						/* shorter than the field: print it, then pad */
+						hPrintUnits( fnum, sptr, length );
+
+						strchars -= (int)length;
+						fb_hUStrFill( buffer, (FB_UCHAR)' ', strchars );
+					} else {
+						fb_hUStrCopyN( buffer, sptr, strchars );
+
+						/* embedded NULs render as spaces, as in the narrow and
+						   wide versions */
+						for( i = 0; i < strchars; i++ )
+							if( buffer[i] == 0 )
+								buffer[i] = (FB_UCHAR)' ';
+					}
+
+					buffer[strchars] = 0;
+					hPrintUnits( fnum, buffer, strchars );
+
+					++ctx->ptr;
+					--ctx->chars;
+				} else {
+					strchars = 1;
+					doexit = FALSE;
+				}
+			}
+			break;
+
+		case ' ':
+			if( strchars > -1 ) {
+				++strchars;
+				doexit = FALSE;
+			}
+			break;
+		}
+
+		if( doexit )
+			break;
+
+		++ctx->ptr;
+		--ctx->chars;
+	}
+
+	/* any text */
+	fb_PrintUsingFmtStr( fnum );
+
+	/**/
+	if( mask & FB_PRINT_ISLAST ) {
+		if( mask & FB_PRINT_NEWLINE )
+			fb_PrintVoid( fnum, FB_PRINT_NEWLINE );
+		fb_StrDelete( &ctx->fmtstr );
+	}
+
+	/* del if temp */
+	fb_hUStrDelTemp( s );
+
+	return fb_ErrorSetNum( FB_RTERROR_OK );
+}
+
 static int hPrintNumber
 	(
 		int fnum,

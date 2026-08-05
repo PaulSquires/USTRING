@@ -590,6 +590,18 @@
 				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, FALSE ) _
 			} _
 		), _
+		/' function fb_PrintUsingUStr( byval fnum as const long, byref s as const ustring, byval mask as const long ) as long '/ _
+		( _
+			@FB_RTL_PRINTUSGUSTR, NULL, _
+			FB_DATATYPE_LONG, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_NONE, _
+			3, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_USTRING ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
 		/' function fb_PrintUsingSingle( byval fnum as const long, byval v as const single, byval mask as const long ) as long '/ _
 		( _
 			@FB_RTL_PRINTUSG_SNG, NULL, _
@@ -1128,6 +1140,11 @@ function rtlPrintUsing _
 
 	case FB_DATATYPE_WCHAR
 		f = PROCLOOKUP( PRINTUSGWSTR )
+
+	'' USTRING: field widths count CODE UNITS, matching LEN and []. A USTRING * N
+	'' is converted to a temp descriptor by the argument handling.
+	case FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR
+		f = PROCLOOKUP( PRINTUSGUSTR )
 
 	case FB_DATATYPE_SINGLE
 		f = PROCLOOKUP( PRINTUSG_SNG )

@@ -389,10 +389,36 @@ Phases 0-6 complete. Verified on win64 only, under both `-gen gcc` and
 | `tests/ustr_codec_test.c` | 70 |
 | `tests/ustr_core_test.c` | 38 |
 | `tests/ustring_lang_test.bas` | 134 |
-| `tests/ustring_io_test.bas` | 13 |
+| `tests/ustring_io_test.bas` | 22 |
 | fbc suite | 1154412 assertions, 11 failed (all pre-existing ThreadCall) |
+
+## PRINT USING
+
+`fb_PrintUsingUStr` in `io_printusg.c`, beside the narrow and wide versions
+(it needs that file's format-string context, which is file-local).
+
+It parses into a `FB_UCHAR` buffer instead of converting to UTF-8 and
+delegating to `fb_PrintUsingStr`, which would have been a fraction of the code.
+It cannot: `fb_PrintUsingStr` counts **bytes**, so `\   \` applied to five
+accented characters would consume ten bytes of a five-unit field and truncate —
+and, worse, only when the output was redirected, since only that path is UTF-8.
+The same program would format differently into a file than onto a console.
+
+Counting code units also matches `LEN`, `[]` and every position in
+`LEFT`/`MID`/`INSTR`.
+
+Emission goes through a stack `FBUSTRING` handed to `fb_PrintUStr`, so the
+console-vs-UTF-8 decision stays in `ustr_print.c` alone. The descriptor is not
+from the temp pool and its `len` carries no `FB_TEMPSTRBIT`, so nothing frees it.
+
+Checked against `STRING` and `WSTRING` on the same formats: ustring matches
+STRING exactly on ASCII, including the degenerate ones (an unterminated `[\]`
+field, more arguments than fields, a source longer than its field). It differs
+from WSTRING only in that WSTRING writes raw UTF-16 bytes when redirected.
+
+LPRINT USING needs no separate work — `rtlPrintUsing` reuses the same lookups.
 
 Still open: linux64/ARM/JS/DOS are untested, the LLVM path is verified by
 reading IR but never assembled (fbc 1.20's IR uses an obsolete `llvm.memset`
-signature clang 21 rejects, independently of ustring), and `PRINT USING`,
-`DRAW STRING` and `OPEN ... ENCODING` are not wired.
+signature clang 21 rejects, independently of ustring), and `DRAW STRING` and
+`OPEN ... ENCODING` are not wired.
