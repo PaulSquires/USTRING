@@ -390,6 +390,7 @@ Phases 0-6 complete. Verified on win64 only, under both `-gen gcc` and
 | `tests/ustr_core_test.c` | 38 |
 | `tests/ustring_lang_test.bas` | 134 |
 | `tests/ustring_io_test.bas` | 22 |
+| `tests/ustring_gfx_test.bas` | 13 |
 | fbc suite | 1154412 assertions, 11 failed (all pre-existing ThreadCall) |
 
 ## PRINT USING
@@ -418,7 +419,50 @@ from WSTRING only in that WSTRING writes raw UTF-16 bytes when redirected.
 
 LPRINT USING needs no separate work — `rtlPrintUsing` reuses the same lookups.
 
+## DRAW STRING
+
+The starting point was not "unsupported" — it was **silently wrong**.
+`draw string (x,y), u` already compiled, because a ustring satisfies the narrow
+`byref as const string` parameter through the Phase 2 UTF-8 conversion. And
+gfxlib2's font is indexed by **byte** (`char_data[(unsigned char)s->data[i]]`,
+256 glyphs), so every non-ASCII character drew two or three garbage glyphs.
+That was a regression against WSTRING, which at least gets one character to one
+byte.
+
+gfxlib2 has no Unicode font support at all and says so:
+
+> `gfx_print_wstr.c`: "Unicode gfx font support is out of the scope of gfxlib,
+> convert to ascii"
+
+So the only real question is *which byte*. gfxlib2 answers it itself:
+
+```c
+fb_gfx.h:  #define FB_GFX_GET_CHARSET() "CP437"
+```
+
+Confirmed against the actual bitmap by rendering glyphs and dumping pixels —
+byte `0x01` is a smiley, `0xE9` is theta, `0xDB` is a full block. CP437, not
+Latin-1.
+
+`fb_GfxDrawStringUStr` therefore maps each code unit through a generated CP437
+table and delegates to `fb_GfxDrawString`. Unmappable → `'?'`; a surrogate pair
+→ **one** `'?'`, since it is one character.
+
+A table, not the locale. This deliberately diverges from the wstring precedent
+(`fb_wstr_ConvToA`), which draws different glyphs depending on the machine's
+locale — precisely what this type exists to stop.
+
+A **custom** font is also byte-indexed, and its codepage is whatever its
+author's bitmap says, which is unknowable from here. CP437 is a guess there, but
+a far better one than UTF-8 bytes; anyone needing exact index control can pass a
+STRING, whose bytes still go through untouched.
+
+Tests compare **pixels**, not appearances: the ustring and the equivalent narrow
+string are rendered to the same surface and the drawn bitmaps compared. The
+check that matters is that U+0398 now renders identically to `chr(&hE9)` and
+**differently** from its own UTF-8 bytes.
+
 Still open: linux64/ARM/JS/DOS are untested, the LLVM path is verified by
 reading IR but never assembled (fbc 1.20's IR uses an obsolete `llvm.memset`
-signature clang 21 rejects, independently of ustring), and `DRAW STRING` and
-`OPEN ... ENCODING` are not wired.
+signature clang 21 rejects, independently of ustring), and `OPEN ... ENCODING`
+is not wired.

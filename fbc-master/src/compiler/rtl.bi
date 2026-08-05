@@ -403,6 +403,7 @@
 #define FB_RTL_GFXPAINT                 "fb_GfxPaint"
 #define FB_RTL_GFXDRAW                  "fb_GfxDraw"
 #define FB_RTL_GFXDRAWSTRING            "fb_GfxDrawString"
+#define FB_RTL_GFXDRAWSTRINGUSTR        "fb_GfxDrawStringUStr"
 #define FB_RTL_GFXVIEW                  "fb_GfxView"
 #define FB_RTL_GFXWINDOW                "fb_GfxWindow"
 #define FB_RTL_GFXPALETTE               "fb_GfxPalette"
@@ -835,6 +836,7 @@ enum FB_RTL_IDX
 	FB_RTL_IDX_GFXPAINT
 	FB_RTL_IDX_GFXDRAW
 	FB_RTL_IDX_GFXDRAWSTRING
+	FB_RTL_IDX_GFXDRAWSTRINGUSTR
 	FB_RTL_IDX_GFXVIEW
 	FB_RTL_IDX_GFXWINDOW
 	FB_RTL_IDX_GFXPALETTE

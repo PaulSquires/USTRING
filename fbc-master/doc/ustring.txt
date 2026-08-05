@@ -138,6 +138,23 @@ three -- and yields the same thing whether the output is a console or a file.
 A field can split a surrogate pair, exactly as MID can. That is a property of
 UTF-16, not of PRINT USING.
 
+DRAW STRING draws ONE CODE UNIT AS ONE GLYPH. gfxlib2's font is a 256-glyph
+bitmap indexed by byte -- it has no Unicode support at all -- and gfxlib2
+declares its character set as CP437, so each code unit maps through a CP437
+table:
+
+    dim as ustring u = "<U+0398>"   '' theta
+    draw string (0, 0), u          '' draws CP437 byte &hE9: theta
+
+A character the font has no glyph for draws as '?'. An astral character is one
+character, so it draws as a single '?' and not two.
+
+The table is fixed rather than locale-based, which is where this departs from
+the wstring path (that one calls fb_wstr_ConvToA and so draws different glyphs
+on different machines). A CUSTOM font is also indexed by byte and its codepage
+is whatever its author's bitmap says -- if you need exact control over the
+indices, pass a STRING, whose bytes go through untouched.
+
 OPEN ... ENCODING is not wired for USTRING -- a ustring file is UTF-8 by
 construction.
 

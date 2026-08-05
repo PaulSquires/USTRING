@@ -191,6 +191,26 @@ declare function hPorts_cb _
 				( typeAddrOf( FB_DATATYPE_VOID ), FB_PARAMMODE_BYVAL, FALSE ) _
 			} _
 		), _
+		/' function fb_GfxDrawStringUStr( ... byref string as const ustring ... ) '/ _
+		( _
+			@FB_RTL_GFXDRAWSTRINGUSTR, NULL, _
+			FB_DATATYPE_INTEGER, FB_FUNCMODE_FBCALL, _
+			@hGfxlib_cb, FB_RTL_OPT_ERROR, _
+			11, _
+			{ _
+				( typeAddrOf( FB_DATATYPE_VOID ), FB_PARAMMODE_BYVAL, TRUE, 0 ), _
+				( typeSetIsConst( FB_DATATYPE_SINGLE ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_SINGLE ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_USTRING ), FB_PARAMMODE_BYREF, FALSE ), _
+				( typeSetIsConst( FB_DATATYPE_ULONG ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeAddrOf( typeSetIsConst( FB_DATATYPE_VOID ) ), FB_PARAMMODE_BYVAL, TRUE, 0 ), _
+				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeAddrOf( FB_DATATYPE_VOID ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( typeAddrOf( FB_DATATYPE_VOID ), FB_PARAMMODE_BYVAL, TRUE, 0 ), _
+				( typeAddrOf( FB_DATATYPE_VOID ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
 		/' sub fb_GfxView _
 			( _
 				byval x1 as const long = -32768, _
@@ -1820,7 +1840,15 @@ function rtlGfxDrawString _
 
 	function = FALSE
 
-	proc = astNewCALL( PROCLOOKUP( GFXDRAWSTRING ) )
+	'' A USTRING gets its own entry point. Letting it satisfy the narrow
+	'' 'byref as const string' parameter -- which it silently did -- converts to
+	'' UTF-8, and gfxlib2's font is indexed by BYTE, so every non-ASCII character
+	'' drew two or three garbage glyphs. See gfx_drawstring_ustr.c.
+	if( typeIsUstring( astGetDataType( sexpr ) ) ) then
+		proc = astNewCALL( PROCLOOKUP( GFXDRAWSTRINGUSTR ) )
+	else
+		proc = astNewCALL( PROCLOOKUP( GFXDRAWSTRING ) )
+	end if
 
 	'' byval target as any ptr
 	if( astNewARG( proc, target ) = NULL ) then

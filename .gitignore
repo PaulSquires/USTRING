@@ -22,3 +22,5 @@ tests/*.exe
 tests/*.o
 
 *.tmp
+
+tests/ustring_gfx_test.out

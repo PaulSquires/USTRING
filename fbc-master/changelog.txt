@@ -31,6 +31,12 @@ Version 1.20.0
 - USTRING: PRINT USING is supported. Field widths count CODE UNITS, matching
   LEN and [], so a format field lines up with the string's own idea of its
   length regardless of where the output goes.
+- USTRING: DRAW STRING draws one code unit as one glyph, mapping through a
+  CP437 table (gfxlib2's font is a 256-glyph bitmap indexed by byte, and
+  gfxlib2 declares CP437 as its charset). A character the font has no glyph for
+  becomes '?', and an astral character becomes a single '?' rather than two.
+  A fixed table rather than the locale, unlike the wstring path, so the same
+  source draws the same glyphs on every machine.
 - USTRING is gated out of '-lang qb', as ZSTRING and WSTRING already are.
 
 [changed]
