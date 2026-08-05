@@ -389,7 +389,7 @@ Phases 0-6 complete. Verified on win64 only, under both `-gen gcc` and
 | `tests/ustr_codec_test.c` | 70 |
 | `tests/ustr_core_test.c` | 38 |
 | `tests/ustring_lang_test.bas` | 134 |
-| `tests/ustring_io_test.bas` | 22 |
+| `tests/ustring_io_test.bas` | 36 |
 | `tests/ustring_gfx_test.bas` | 13 |
 | fbc suite | 1154412 assertions, 11 failed (all pre-existing ThreadCall) |
 
@@ -462,7 +462,64 @@ string are rendered to the same surface and the drawn bitmaps compared. The
 check that matters is that U+0398 now renders identically to `chr(&hE9)` and
 **differently** from its own UTF-8 bytes.
 
-Still open: linux64/ARM/JS/DOS are untested, the LLVM path is verified by
+## OPEN ... ENCODING
+
+Another one that was **silently wrong rather than missing** — and this one
+corrupted data in both directions.
+
+A ustring is UTF-8 on disk by construction, so the I/O path converted to UTF-8
+first. An `ENCODING` file's device *also* encodes, so those UTF-8 bytes were
+re-encoded as if each byte were a character:
+
+```
+ustring "héi" -> ENCODING "utf16"
+  before:  FF FE 68 00 C3 00 A9 00 69 00     "hÃ©i"
+  after:   FF FE 68 00 E9 00 69 00           what WSTRING writes
+```
+
+Reading was the mirror image: the device decoded UTF-16 to a single narrow byte
+`0xE9`, which was then read as UTF-8, was malformed, and became **U+FFFD**. The
+character was simply gone.
+
+### Why it needs runtime entry points
+
+`ENCODING` is a **runtime** property of the file, so this cannot be settled at
+compile time the way the STRING/WSTRING split is. Hence `fb_FileLineInputUStr`
+and `fb_InputUStr` in `ustr_fileio.c`, plus a branch in `fb_PrintUStr` /
+`fb_WriteUStr`, all switching on `handle->encod`:
+
+| `handle->encod` | path |
+|---|---|
+| `FB_FILE_ENCOD_ASCII` | narrow — plain bytes, and a ustring file is UTF-8 |
+| anything else | wide — the device encodes/decodes, exactly as for WSTRING |
+
+The console keeps the old temp-STRING path for LINE INPUT: it has no encoding,
+and that path carries all the prompt and maxlen handling.
+
+The encoded `LINE INPUT #` grows its own buffer rather than calling
+`fb_FileLineInputWstr`, which needs a caller-supplied maximum and truncates past
+it. A plain-file read has no line limit, so an encoded read must not acquire
+one — a silent truncation that appears only for encoded files is precisely the
+kind of bug this work keeps turning up. Tested with a 1000-unit line, which
+crosses the 256-unit initial buffer several times.
+
+`INPUT #` has no such asymmetry: both tokenisers bound a token at
+`FB_INPUT_MAXSTRINGLEN`, so a ustring is neither more nor less capable than a
+wstring.
+
+### The trap: a hardcoded array bound
+
+`rtl-file.bas` declares its funcdata table as `funcdata( 0 to 71 )` — a
+**hardcoded** bound. Adding rows without bumping it fails as a confusing syntax
+error a hundred lines away (`error 65: Expected '}'`). Its siblings
+`rtl-print.bas` and `rtl-gfx.bas` use `0 to ...` and infer it, which is why the
+PRINT USING and DRAW STRING rows needed no such change.
+
+Tests compare against **WSTRING's bytes**, not against hand-written
+expectations — wstring has always been right here, so it is the reference. All
+three encodings, both directions, plus a check that a plain file is still
+untouched UTF-8.
+
+Still open: linux64/ARM/JS/DOS are untested, and the LLVM path is verified by
 reading IR but never assembled (fbc 1.20's IR uses an obsolete `llvm.memset`
-signature clang 21 rejects, independently of ustring), and `OPEN ... ENCODING`
-is not wired.
+signature clang 21 rejects, independently of ustring).

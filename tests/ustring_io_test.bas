@@ -139,6 +139,103 @@ chkusg( "USING fixed-length arg", "[\   \]", pf, "[world]" )
 dim as ustring pfmt = "<\   \>"
 chkusg( "USING ustring format",   pfmt, pu, "<héllo>" )
 
+'' --------------------------------------------- OPEN ... ENCODING
+''
+'' This was DOUBLE ENCODING, not a missing feature. A ustring is UTF-8 on disk
+'' by construction, so the I/O path converted to UTF-8 first -- but an ENCODING
+'' file's device encodes as well, so the UTF-8 BYTES were re-encoded as if each
+'' were a character:
+''
+''   before:  ustring "héi" into ENCODING "utf16"
+''            FF FE 68 00 C3 00 A9 00 69 00     <- "hÃ©i", mojibake
+''   after:   FF FE 68 00 E9 00 69 00           <- what WSTRING writes
+''
+'' Reading was the mirror image: the device decoded UTF-16 to one narrow byte,
+'' which was then read as UTF-8, was malformed, and became U+FFFD.
+''
+'' WSTRING is the reference here: it has always been right, so these compare
+'' against it rather than against hand-written expectations.
+
+#macro chkenc( nm, encname )
+    scope
+        dim as integer ef
+        dim as ustring uw = "h" + wchr(&h00E9) + "i" + wchr(&h4E2D)
+        dim as wstring * 16 ww = "h" + wchr(&h00E9) + "i" + wchr(&h4E2D)
+
+        '' the WSTRING bytes are the reference
+        ef = freefile : open TMPF for output encoding encname as #ef
+        print #ef, ww; : close #ef
+        ef = freefile : open TMPF for binary access read as #ef
+        dim as string want = space(lof(ef))
+        get #ef, , want : close #ef
+
+        ef = freefile : open TMPF for output encoding encname as #ef
+        print #ef, uw; : close #ef
+        ef = freefile : open TMPF for binary access read as #ef
+        dim as string got = space(lof(ef))
+        get #ef, , got : close #ef
+
+        chk( nm + " bytes match WSTRING", got = want, -1 )
+        chk( nm + " wrote something", len(got) > 0, -1 )
+
+        '' and it must round-trip back through LINE INPUT #
+        dim as ustring back
+        ef = freefile : open TMPF for input encoding encname as #ef
+        line input #ef, back : close #ef
+        chks( nm + " round-trips", back, uw )
+    end scope
+#endmacro
+
+chkenc( "utf8",  "utf8"  )
+chkenc( "utf16", "utf16" )
+chkenc( "utf32", "utf32" )
+
+'' INPUT # must decode too -- it has its own tokeniser, so it is a separate path
+scope
+    dim as ustring tok = "h" + wchr(&h00E9) + "i"
+    dim as integer ef = freefile
+    open TMPF for output encoding "utf16" as #ef
+    print #ef, tok : close #ef
+
+    dim as ustring got
+    ef = freefile : open TMPF for input encoding "utf16" as #ef
+    input #ef, got : close #ef
+    chks( "INPUT # decodes utf16", got, tok )
+end scope
+
+'' The encoded LINE INPUT # grows its own buffer rather than taking a caller
+'' maximum, so a plain file and an encoded file have the SAME (absent) line
+'' limit. 1000 units crosses the 256-unit initial buffer several times.
+scope
+    dim as ustring long_line
+    for i as integer = 1 to 1000
+        long_line += wchr(&h00E9)
+    next
+    chk( "long line is 1000 units", len(long_line), 1000 )
+
+    dim as integer ef = freefile
+    open TMPF for output encoding "utf16" as #ef
+    print #ef, long_line : close #ef
+
+    dim as ustring back
+    ef = freefile : open TMPF for input encoding "utf16" as #ef
+    line input #ef, back : close #ef
+    chk ( "long line survives, no truncation", len(back), 1000 )
+    chks( "long line round-trips exactly", back, long_line )
+end scope
+
+'' A PLAIN file must be untouched by all of this: still UTF-8.
+scope
+    dim as ustring u = "h" + wchr(&h00E9) + "i"
+    dim as integer ef = freefile
+    open TMPF for output as #ef
+    print #ef, u; : close #ef
+    ef = freefile : open TMPF for binary access read as #ef
+    dim as string raw = space(lof(ef))
+    get #ef, , raw : close #ef
+    chk( "plain file is still UTF-8", raw = chr(&h68,&hC3,&hA9,&h69), -1 )
+end scope
+
 kill TMPF
 
 print g_run; " checks,"; g_fail; " failed"

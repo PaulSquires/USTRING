@@ -155,8 +155,12 @@ on different machines). A CUSTOM font is also indexed by byte and its codepage
 is whatever its author's bitmap says -- if you need exact control over the
 indices, pass a STRING, whose bytes go through untouched.
 
-OPEN ... ENCODING is not wired for USTRING -- a ustring file is UTF-8 by
-construction.
+OPEN ... ENCODING is honoured. A file opened with ENCODING "utf8", "utf16" or
+"utf32" is written and read in that encoding, byte-for-byte the same as a
+WSTRING would produce; PRINT #, WRITE #, LINE INPUT # and INPUT # all follow
+it. Without ENCODING a ustring file is UTF-8, as above.
+
+LINE INPUT # has no line-length limit in either case.
 
 
 DIALECTS

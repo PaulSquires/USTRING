@@ -37,6 +37,12 @@ Version 1.20.0
   becomes '?', and an astral character becomes a single '?' rather than two.
   A fixed table rather than the locale, unlike the wstring path, so the same
   source draws the same glyphs on every machine.
+- USTRING: OPEN ... ENCODING is honoured by PRINT #, WRITE #, LINE INPUT # and
+  INPUT #, producing and reading the same bytes a WSTRING would. Previously the
+  ustring was converted to UTF-8 first and the file device then encoded those
+  bytes again, so writing to an ENCODING file produced mojibake and reading one
+  turned every non-ASCII character into U+FFFD. Without ENCODING a ustring file
+  is UTF-8, unchanged.
 - USTRING is gated out of '-lang qb', as ZSTRING and WSTRING already are.
 
 [changed]

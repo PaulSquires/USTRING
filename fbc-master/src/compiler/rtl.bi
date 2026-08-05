@@ -357,6 +357,7 @@
 #define FB_RTL_FILEWSTRINPUT            "fb_FileWstrInput"
 #define FB_RTL_FILELINEINPUT            "fb_FileLineInput"
 #define FB_RTL_FILELINEINPUTWSTR        "fb_FileLineInputWstr"
+#define FB_RTL_FILELINEINPUTUSTR        "fb_FileLineInputUStr"
 #define FB_RTL_CONSOLELINEINPUT         "fb_LineInput"
 #define FB_RTL_CONSOLELINEINPUTWSTR     "fb_LineInputWstr"
 
@@ -375,6 +376,7 @@
 #define FB_RTL_INPUTDOUBLE              "fb_InputDouble"
 #define FB_RTL_INPUTSTR                 "fb_InputString"
 #define FB_RTL_INPUTWSTR                "fb_InputWstr"
+#define FB_RTL_INPUTUSTR                "fb_InputUStr"
 
 #define FB_RTL_FILELOCK                 "fb_FileLock"
 #define FB_RTL_FILELOCKLARGE            "fb_FileLockLarge"
@@ -790,6 +792,7 @@ enum FB_RTL_IDX
 	FB_RTL_IDX_FILEWSTRINPUT
 	FB_RTL_IDX_FILELINEINPUT
 	FB_RTL_IDX_FILELINEINPUTWSTR
+	FB_RTL_IDX_FILELINEINPUTUSTR
 	FB_RTL_IDX_CONSOLELINEINPUT
 	FB_RTL_IDX_CONSOLELINEINPUTWSTR
 
@@ -808,6 +811,7 @@ enum FB_RTL_IDX
 	FB_RTL_IDX_INPUTDOUBLE
 	FB_RTL_IDX_INPUTSTR
 	FB_RTL_IDX_INPUTWSTR
+	FB_RTL_IDX_INPUTUSTR
 
 	FB_RTL_IDX_FILELOCK
 	FB_RTL_IDX_FILELOCKLARGE

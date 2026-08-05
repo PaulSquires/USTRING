@@ -368,13 +368,32 @@ function cLineInputStmt _
 
 	case FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR
 		''
-		'' Read into a temp STRING and then convert.
+		'' From a FILE this needs its own entry point: OPEN ... ENCODING is a
+		'' RUNTIME property, so the compiler cannot tell whether the bytes are
+		'' UTF-8 (plain file) or already decoded by the device (encoded file).
+		'' Reading into a temp STRING was right for the first and silently lost
+		'' characters in the second. See ustr_fileio.c.
 		''
-		'' Files are UTF-8 (that is what PRINT # writes), so reading bytes and
-		'' decoding is both correct and free of new runtime code -- the whole
-		'' narrow LINE INPUT path, including the maxlen and prompt handling, is
-		'' reused as-is.
+		'' The CONSOLE has no encoding, so it keeps the temp-STRING path and all
+		'' of the prompt and maxlen handling that goes with it.
 		''
+		if( isfile ) then
+			scope
+				dim as ASTNODE ptr proc = astNewCALL( PROCLOOKUP( FILELINEINPUTUSTR ) )
+
+				if( astNewARG( proc, filestrexpr ) = NULL ) then
+					return FALSE
+				end if
+
+				if( astNewARG( proc, dstexpr ) = NULL ) then
+					return FALSE
+				end if
+
+				astAdd( proc )
+				return TRUE
+			end scope
+		end if
+
 		scope
 			dim as FBSYMBOL ptr tmp = symbAddTempVar( FB_DATATYPE_STRING )
 			astDtorListAdd( tmp )

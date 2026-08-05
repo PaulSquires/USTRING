@@ -325,4 +325,10 @@ FBCALL void         fb_WriteUStr         ( int fnum, FBUSTRING *src, int mask );
  * UNITS -- see the note there for why it cannot just convert and delegate. */
 FBCALL int          fb_PrintUsingUStr    ( int fnum, FBUSTRING *src, int mask );
 
+/* LINE INPUT # and INPUT #. In ustr_fileio.c, because ENCODING is a RUNTIME
+ * property of the file: a plain file is UTF-8 bytes, an ENCODING file is
+ * already decoded by the device, and the compiler cannot tell which. */
+FBCALL int          fb_FileLineInputUStr ( int fnum, FBUSTRING *dst );
+FBCALL int          fb_InputUStr         ( FBUSTRING *dst );
+
 #endif /*__FB_USTRING_H__*/

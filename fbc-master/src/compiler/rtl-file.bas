@@ -8,7 +8,7 @@
 #include once "lex.bi"
 #include once "rtl.bi"
 
-	dim shared as FB_RTL_PROCDEF funcdata( 0 to 71 ) = _
+	dim shared as FB_RTL_PROCDEF funcdata( 0 to 73 ) = _
 	{ _
 		/' function fb_FileOpen _
 			( _
@@ -780,6 +780,17 @@
 				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
 			} _
 		), _
+		/' function fb_FileLineInputUStr( byval fnum as const long, byref dst as ustring ) as long '/ _
+		( _
+			@FB_RTL_FILELINEINPUTUSTR, NULL, _
+			FB_DATATYPE_LONG, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_ERROR, _
+			2, _
+			{ _
+				( typeSetIsConst( FB_DATATYPE_LONG ), FB_PARAMMODE_BYVAL, FALSE ), _
+				( FB_DATATYPE_USTRING, FB_PARAMMODE_BYREF, FALSE ) _
+			} _
+		), _
 		/' function fb_LineInput _
 			( _
 				byref text as const string, _
@@ -991,6 +1002,16 @@
 			{ _
 				( typeAddrOf( FB_DATATYPE_WCHAR ), FB_PARAMMODE_BYVAL, FALSE ), _
 				( typeSetIsConst( FB_DATATYPE_INTEGER ), FB_PARAMMODE_BYVAL, FALSE ) _
+			} _
+		), _
+		/' function fb_InputUStr( byref dst as ustring ) as long '/ _
+		( _
+			@FB_RTL_INPUTUSTR, NULL, _
+			FB_DATATYPE_LONG, FB_FUNCMODE_FBCALL, _
+			NULL, FB_RTL_OPT_ERROR, _
+			1, _
+			{ _
+				( FB_DATATYPE_USTRING, FB_PARAMMODE_BYREF, FALSE ) _
 			} _
 		), _
 		/' function fb_FileLock _
@@ -2072,22 +2093,22 @@ function rtlFileInputGet _
 	args = 1
 	dtype = astGetDataType( dstexpr )
 
-	'' ustring? Read into a temp STRING and convert.
-	''
-	'' A file written by PRINT # is UTF-8, so decoding bytes is both correct and
-	'' free of new runtime code: the narrow INPUT path, including its token
-	'' splitting and quoting rules, is reused unchanged.
+	'' ustring? Its own entry point, because OPEN ... ENCODING is a RUNTIME
+	'' property of the file and the compiler cannot see it. Reading into a temp
+	'' STRING was right for a plain (UTF-8) file and silently wrong for an
+	'' encoded one, where the device has already decoded: the byte it produced
+	'' was then re-read as UTF-8 and became U+FFFD. See ustr_fileio.c.
 	if( typeIsUstring( dtype ) ) then
-		dim as FBSYMBOL ptr tmp = symbAddTempVar( FB_DATATYPE_STRING )
-		astDtorListAdd( tmp )
+		f = PROCLOOKUP( INPUTUSTR )
+		args = 1
 
-		astAdd( astBuildTempVarClear( tmp ) )
+		proc = astNewCALL( f )
 
-		if( rtlFileInputGet( astNewVAR( tmp ) ) = FALSE ) then
+		if( astNewARG( proc, dstexpr ) = NULL ) then
 			exit function
 		end if
 
-		astAdd( rtlUStrAssign( dstexpr, astNewVAR( tmp ) ) )
+		astAdd( proc )
 
 		return TRUE
 	end if

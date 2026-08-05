@@ -22,6 +22,22 @@
 #include "win32/fb_private_console.h"
 #endif
 
+/* TRUE when the file was opened with ENCODING, so the device does the encoding
+** and we must NOT convert to UTF-8 first.
+**
+** Getting this wrong was a real bug, not a missing feature: writing a ustring
+** to a file opened ENCODING "utf16" produced FF FE 68 00 C3 00 A9 00 69 00 --
+** the UTF-8 bytes of "h<U+00E9>i" widened one byte at a time, i.e. mojibake.
+** Handing the UTF-16 to the wide path instead lets fb_WCharToUTF( handle->encod,
+** ... ) encode it once, correctly, exactly as it does for a WSTRING. */
+static int hIsEncodedFile( int fnum )
+{
+	FB_FILE *handle = FB_FILE_TO_HANDLE( fnum );
+
+	return FB_HANDLE_USED( handle ) &&
+	       (handle->encod != FB_FILE_ENCOD_ASCII);
+}
+
 /* TRUE when writing to a real Windows console, as opposed to a pipe or file. */
 static int hIsRealConsole( int fnum )
 {
@@ -43,7 +59,7 @@ static int hIsRealConsole( int fnum )
 
 FBCALL void fb_PrintUStr( int fnum, FBUSTRING *src, int mask )
 {
-	if( hIsRealConsole( fnum ) )
+	if( hIsRealConsole( fnum ) || hIsEncodedFile( fnum ) )
 	{
 		/* Hand the UTF-16 straight to the wide path: no conversion at all where
 		   wchar_t is 16 bits, and correct cursor tracking either way. */
@@ -60,7 +76,7 @@ FBCALL void fb_PrintUStr( int fnum, FBUSTRING *src, int mask )
 
 FBCALL void fb_WriteUStr( int fnum, FBUSTRING *src, int mask )
 {
-	if( hIsRealConsole( fnum ) )
+	if( hIsRealConsole( fnum ) || hIsEncodedFile( fnum ) )
 	{
 		FB_WCHAR *w = fb_UStrToWstr( src, FB_USTRSIZEVARLEN );
 		fb_WriteWstr( fnum, w, mask );
