@@ -401,6 +401,57 @@ chks( "LEFT 1 of mixed", left(xmix,1), "a" )
 chks( "RIGHT 1 of mixed", right(xmix,1), "z" )
 chk ( "INSTR finds z at unit 4", instr(xmix, "z"), 4 )
 
+'' ----------------------------------------- ASC, indexing, LSET/RSET, SWAP
+'' ASC and [] both yield a CODE UNIT, consistent with LEN(). A position
+'' holding a surrogate half yields that half -- decoding a whole scalar is
+'' the job of the codepoint helpers, not of ASC.
+dim as ustring ia = "hello"
+chk( "ASC default position", asc(ia), 104 )
+chk( "ASC at position 2", asc(ia, 2), 101 )
+chk( "ASC out of range is 0", asc(ia, 99), 0 )
+chk( "index [0]", ia[0], 104 )
+chk( "index [4]", ia[4], 111 )
+
+'' a non-ASCII BMP character is ONE unit with its real codepoint value,
+'' which is what separates this from a byte-oriented string
+dim as ustring ib = "é€"
+chk( "index U+00E9", ib[0], 233 )
+chk( "index U+20AC", ib[1], 8364 )
+chk( "ASC of U+20AC", asc(ib,2), 8364 )
+
+'' LSET/RSET pad with spaces and never resize the destination
+dim as ustring iL = "xxxxxx"
+lset iL, "ab"
+chks( "LSET pads right", iL, "ab    " )
+dim as ustring iR = "xxxxxx"
+rset iR, "ab"
+chks( "RSET pads left", iR, "    ab" )
+
+'' SWAP exchanges the two descriptors -- O(1), no text moved
+dim as ustring iS1 = "one", iS2 = "two"
+swap iS1, iS2
+chks( "SWAP first", iS1, "two" )
+chks( "SWAP second", iS2, "one" )
+
+'' -------------------------------------------- numeric conversions
+'' These need no ustring-specific runtime: their text is ASCII, so the
+'' UTF-8 conversion is lossless in both directions.
+dim as ustring iv = "3.5"
+chk( "VAL", cint(val(iv)*10), 35 )
+dim as ustring ii = "42"
+chk( "VALINT", valint(ii), 42 )
+dim as ustring ih : ih = hex(255)
+chks( "HEX -> ustring", ih, "FF" )
+dim as ustring ist : ist = str(42)
+chks( "STR -> ustring", ist, "42" )
+
+'' WCHR is how a ustring is built from a codepoint: it produces a wstring,
+'' which converts losslessly. CHR would produce a single BYTE, which is not
+'' valid UTF-8 above 127.
+dim as ustring iw : iw = wchr(233)
+chks( "WCHR builds a codepoint", iw, "é" )
+chk ( "STRPTR is non-null", cint(strptr(ia) <> 0), -1 )
+
 print g_run; " checks,"; g_fail; " failed"
 if( g_fail <> 0 ) then
 	end 1

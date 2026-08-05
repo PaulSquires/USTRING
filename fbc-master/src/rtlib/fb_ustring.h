@@ -309,4 +309,9 @@ FB_UCHAR            fb_hUStrToLower      ( FB_UCHAR c );
 FBCALL FBUSTRING   *fb_UStrUcase         ( void *src, ssize_t src_size );
 FBCALL FBUSTRING   *fb_UStrLcase         ( void *src, ssize_t src_size );
 
+FBCALL int          fb_UStrAsc           ( void *src, ssize_t src_size, ssize_t pos );
+FBCALL void         fb_UStrLset          ( void *dst, ssize_t dst_size, void *src, ssize_t src_size );
+FBCALL void         fb_UStrRset          ( void *dst, ssize_t dst_size, void *src, ssize_t src_size );
+FBCALL void         fb_UStrSwap          ( void *str1, ssize_t size1, void *str2, ssize_t size2 );
+
 #endif /*__FB_USTRING_H__*/

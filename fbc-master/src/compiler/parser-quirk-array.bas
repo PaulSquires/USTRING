@@ -127,6 +127,23 @@ private function hScopedSwap( ) as integer
 		end select
 		exit function
 
+	case FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR
+		'' Without this a ustring falls through to the generic temp-var swap
+		'' below (tmp = l : l = r : r = tmp), which for a descriptor type means
+		'' three full assignments -- and which the gas64 backend miscompiled
+		'' into a crash. fb_UStrSwap() exchanges the two descriptors instead,
+		'' which is O(1) and moves no text at all.
+		if( typeIsUstring( rdtype ) ) then
+			dim as ASTNODE ptr uproc = rtlUStrSwap( l, r )
+			if( uproc <> NULL ) then
+				astAdd( uproc )
+				function = TRUE
+			end if
+		else
+			errReport( FB_ERRMSG_TYPEMISMATCH )
+		end if
+		exit function
+
 	case FB_DATATYPE_WCHAR
 		if( rdtype = FB_DATATYPE_WCHAR ) then
 			function = rtlWstrSwap( l, r )

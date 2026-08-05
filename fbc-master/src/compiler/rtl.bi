@@ -59,6 +59,10 @@
 #define FB_RTL_USTRINSTRREVANY             "fb_UStrInstrRevAny"
 #define FB_RTL_USTRUCASE                   "fb_UStrUcase"
 #define FB_RTL_USTRLCASE                   "fb_UStrLcase"
+#define FB_RTL_USTRASC                     "fb_UStrAsc"
+#define FB_RTL_USTRLSET                    "fb_UStrLset"
+#define FB_RTL_USTRRSET                    "fb_UStrRset"
+#define FB_RTL_USTRSWAP                    "fb_UStrSwap"
 
 #define FB_RTL_BOOL2STR                 "fb_BoolToStr"
 #define FB_RTL_INT2STR                  "fb_IntToStr"
@@ -934,6 +938,10 @@ enum FB_RTL_IDX
 	FB_RTL_IDX_USTRINSTRREVANY
 	FB_RTL_IDX_USTRUCASE
 	FB_RTL_IDX_USTRLCASE
+	FB_RTL_IDX_USTRASC
+	FB_RTL_IDX_USTRLSET
+	FB_RTL_IDX_USTRRSET
+	FB_RTL_IDX_USTRSWAP
 
 	FB_RTL_INDEXES
 end enum
@@ -1130,6 +1138,9 @@ declare function rtlUStrInstr( byval start as ASTNODE ptr, byval nd_str as ASTNO
 declare function rtlUStrInstrRev( byval nd_str as ASTNODE ptr, byval pattern as ASTNODE ptr, byval start as ASTNODE ptr, byval is_any as integer ) as ASTNODE ptr
 declare function rtlUStrCase( byval nd_str as ASTNODE ptr, byval is_upper as integer ) as ASTNODE ptr
 declare function rtlUStrFill( byval units as ASTNODE ptr, byval fill as ASTNODE ptr ) as ASTNODE ptr
+declare function rtlUStrAsc( byval nd_str as ASTNODE ptr, byval nd_pos as ASTNODE ptr ) as ASTNODE ptr
+declare function rtlUStrLRSet( byval dst as ASTNODE ptr, byval src as ASTNODE ptr, byval is_rset as integer ) as ASTNODE ptr
+declare function rtlUStrSwap( byval a as ASTNODE ptr, byval b as ASTNODE ptr ) as ASTNODE ptr
 declare function rtlUStrDelete( byval expr as ASTNODE ptr ) as ASTNODE ptr
 declare function rtlUStrLen( byval expr as ASTNODE ptr ) as ASTNODE ptr
 

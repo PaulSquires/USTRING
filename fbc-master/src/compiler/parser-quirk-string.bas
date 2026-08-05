@@ -86,6 +86,7 @@ function cLRSetStmt(byval tk as FB_TOKEN) as integer
 	select case as const dtype1
 	case FB_DATATYPE_STRING, FB_DATATYPE_FIXSTR, _
 		 FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR, _
+		 FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR, _
 		 FB_DATATYPE_STRUCT
 
 		if( is_rset and (dtype1 = FB_DATATYPE_STRUCT) ) then

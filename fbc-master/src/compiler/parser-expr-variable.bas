@@ -503,6 +503,9 @@ private function hStrIndexing _
 	if( typeGet( dtype ) = FB_DATATYPE_STRING ) then
 		'' deref
 		varexpr = astBuildStrPtr( varexpr )
+	elseif( typeGet( dtype ) = FB_DATATYPE_USTRING ) then
+		'' deref the descriptor to its 16-bit buffer
+		varexpr = astBuildUStrPtr( varexpr )
 	else
 		'' address of
 		varexpr = astNewADDROF( varexpr )
@@ -513,6 +516,10 @@ private function hStrIndexing _
 		'' times sizeof( wchar ) if it's wstring
 		idxexpr = astNewBOP( AST_OP_MUL, idxexpr, _
 		                     astNewCONSTi( typeGetSize( FB_DATATYPE_WCHAR ) ) )
+	elseif( typeIsUstring( dtype ) ) then
+		'' a code unit is always 2 bytes, on every target
+		idxexpr = astNewBOP( AST_OP_MUL, idxexpr, _
+		                     astNewCONSTi( typeGetSize( FB_DATATYPE_FIXUSTR ) ) )
 	end if
 
 	'' null pointer checking
@@ -525,6 +532,10 @@ private function hStrIndexing _
 	'' wstring?
 	if( typeGet( dtype ) = FB_DATATYPE_WCHAR ) then
 		dtype = typeJoin( dtype, env.target.wchar )
+	elseif( typeIsUstring( dtype ) ) then
+		'' indexing a ustring yields a CODE UNIT, hence USHORT -- never the
+		'' target's wchar, which is the whole point of the type
+		dtype = typeJoin( dtype, FB_DATATYPE_USHORT )
 	else
 		dtype = typeJoin( dtype, FB_DATATYPE_UBYTE )
 	end if
@@ -674,9 +685,10 @@ function cMemberDeref _
 			end if
 
 			select case( typeGetDtAndPtrOnly( dtype ) )
-			'' string, fixstr, w|zstring? In that case '[]' means string indexing, not MemberDeref.
+			'' string, fixstr, w|z|ustring? In that case '[]' means string indexing, not MemberDeref.
 			case FB_DATATYPE_STRING, FB_DATATYPE_FIXSTR, _
-			     FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR
+			     FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR, _
+			     FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR
 				varexpr = hStrIndexing( dtype, varexpr, hCheckIntegerIndex( idxexpr ) )
 				idxexpr = NULL
 

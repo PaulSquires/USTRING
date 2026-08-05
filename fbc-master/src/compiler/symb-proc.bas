@@ -2001,12 +2001,18 @@ private function hCalcTypesDiff _
 				return FB_OVLPROC_FULLMATCH - OvlMatchScore( 0, 2 )
 			case FB_DATATYPE_WCHAR
 				'' string|ustring => wstring.
-				'' A ustring scores better here: it and wstring are both
-				'' UTF-16 sequences, so nothing is lost, whereas a narrow
-				'' string has to be decoded first.
-				if( typeIsUstring( arg_dtype ) ) then
-					return FB_OVLPROC_HALFMATCH - OvlMatchScore( 0, 2 )
-				end if
+				''
+				'' A ustring scores WORSE here than it does against a STRING
+				'' parameter, so that an overload set offering both (VAL and
+				'' friends) resolves to STRING instead of being ambiguous.
+				'' Both conversions are lossless, so the tie has to be broken
+				'' somewhere; STRING is FB's primary string type and is the
+				'' documented conversion target.
+				''
+				'' This does not affect Win32-style APIs, whose parameters are
+				'' WSTRING PTR rather than WSTRING and are ranked separately
+				'' below -- there a ustring still wins, and the pointer is
+				'' handed over without a copy.
 				return FB_OVLPROC_HALFMATCH - OvlMatchScore( 0, 3 )
 			case typeAddrOf( FB_DATATYPE_WCHAR )
 				'' string|ustring => wstring ptr

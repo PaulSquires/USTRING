@@ -712,6 +712,13 @@ private function hCheckStrParam _
 	'' a z|wstring?
 	case FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR
 
+	'' a ustring? Encode to UTF-8 and carry on as a normal STRING argument.
+	'' This is how a ustring reaches the narrow intrinsics that are declared as
+	'' overloads on STRING -- VAL and its family, for instance.
+	case FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR
+		n->l = rtlUStrToStr( n->l )
+		argdtype = astGetDatatype( n->l )
+
 	'' not a string?
 	case else
 		errReport( FB_ERRMSG_PARAMTYPEMISMATCHAT )

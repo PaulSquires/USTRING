@@ -3288,6 +3288,20 @@ function rtlStrLRSet _
 		byval is_rset as integer _
 	) as integer
 
+	'' ustring? its own builder -- the bodies below select byte- or
+	'' wchar-oriented runtime functions and push bare pointers.
+	if( typeIsUstring( astGetDataType( dstexpr ) ) ) then
+		'' NOTE: this function EMITS its call rather than returning it, so the
+		'' ustring node has to be astAdd()'ed here too -- returning it would
+		'' silently produce a statement that does nothing.
+		dim as ASTNODE ptr uproc = rtlUStrLRSet( dstexpr, srcexpr, is_rset )
+		if( uproc = NULL ) then
+			return FALSE
+		end if
+		astAdd( uproc )
+		return TRUE
+	end if
+
 	dim as ASTNODE ptr proc = any
 	dim as integer ddtype = any
 	dim as longint dst_size = any
@@ -3450,6 +3464,12 @@ function rtlStrAsc _
 		byval expr as ASTNODE ptr, _
 		byval posexpr as ASTNODE ptr _
 	) as ASTNODE ptr
+
+	'' ustring? its own builder -- the bodies below select byte- or
+	'' wchar-oriented runtime functions and push bare pointers.
+	if( typeIsUstring( astGetDataType( expr ) ) ) then
+		return rtlUStrAsc( expr, posexpr )
+	end if
 
 	dim as ASTNODE ptr proc = any
 
@@ -4008,6 +4028,18 @@ function rtlStrSwap _
 		byval str1 as ASTNODE ptr, _
 		byval str2 as ASTNODE ptr _
 	) as integer
+
+	'' ustring? its own builder -- the bodies below select byte- or
+	'' wchar-oriented runtime functions and push bare pointers.
+	if( typeIsUstring( astGetDataType( str1 ) ) ) then
+		'' ditto -- rtlStrSwap() emits rather than returns
+		dim as ASTNODE ptr uproc = rtlUStrSwap( str1, str2 )
+		if( uproc = NULL ) then
+			return FALSE
+		end if
+		astAdd( uproc )
+		return TRUE
+	end if
 
 	function = FALSE
 

@@ -227,15 +227,44 @@ corrupt the character, so an astral character passes through `UCASE` unchanged.
 Verified for Latin-1 accents, Greek and Cyrillic, plus astral and CJK
 pass-through.
 
-### Still owed in Phase 3
+### The rest: ASC, indexing, LSET/RSET, SWAP, numerics
 
-`LSET`/`RSET`, `SWAP`, `ASC`/`CHR`, the `VAL` family, `HEX`/`OCT`/`BIN`,
-`STR`/`USTR`, `[]` indexing and `STRPTR`/`SADD`.
+`ASC` and `[]` both yield a **code unit**, so a non-ASCII BMP character reads as
+its real codepoint value (`u[0]` of `"é"` is 233) — the thing a byte-oriented
+string cannot do. A position holding a surrogate half yields that half.
+
+`LSET`/`RSET` pad with spaces and never resize. `SWAP` exchanges the two
+descriptors, which is O(1) and moves no text.
+
+**The numeric intrinsics needed no ustring runtime at all.** `HEX`, `OCT`,
+`BIN`, `STR` and the `VAL` family all produce or consume ASCII, so the existing
+narrow versions plus UTF-8 conversion are already lossless. `VAL` only needed an
+overload tiebreak — ustring→`STRING` now outranks ustring→`WSTRING`, since both
+are lossless and the tie had to break somewhere. This does not affect Win32-style
+APIs, whose parameters are `WSTRING PTR` and are ranked separately.
+
+`WCHR` is how a ustring is built from a codepoint. `CHR` produces a single
+*byte*, which is not valid UTF-8 above 127.
+
+### Two bugs worth recording
+
+**`SWAP` segfaulted under gas64.** A ustring fell through to the generic
+temp-var swap (`tmp = l : l = r : r = tmp`), three full descriptor assignments,
+which gas64 miscompiled. gcc happened to be fine — so this was invisible on the
+default backend. Routed to `fb_UStrSwap` instead, which is both correct and
+O(1).
+
+**`LSET`/`RSET` compiled but did nothing.** `rtlStrLRSet` *emits* its call via
+`astAdd()` rather than returning it, so my delegation returned a node nobody
+added. The statement silently became a no-op — it compiled, ran, and changed
+nothing.
 
 `LEFT` and `RIGHT` needed two-parameter descriptor wrappers
 (`fb_UStrLeftD`/`fb_UStrRightD`): they are registered as true overloads aliased
 straight to a C function, so their signature is fixed and cannot carry the
 `(ptr,size)` pair the rest of the API uses.
+
+**Phase 3 is complete.**
 
 ## Later phases
 
