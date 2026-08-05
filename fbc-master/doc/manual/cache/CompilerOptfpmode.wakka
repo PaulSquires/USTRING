@@ -1,0 +1,35 @@
+{{fbdoc item="title" value="Compiler Option: -fpmode"}}----
+Selects faster, less accurate or slower, more precise floating-point math.
+
+{{fbdoc item="syntax"}}##
+	**-fpmode** < //mode// >
+##
+{{fbdoc item="param"}}
+	##//mode//##
+		The floating point mode: ##FAST## | ##PRECISE##.
+
+{{fbdoc item="desc"}}
+	The ##-fpmode## compiler option specifies whether speed or precision is more important for floating point math. If this option is not specified, the default is ##-fpmode PRECISE##.
+	
+	##-fpmode FAST## will generate faster, less accurate instructions for certain floating point operations.
+	
+	##-fpmode PRECISE## will generate standard floating point instructions that operate at the default speed and accuracy of the selected floating point unit.
+	
+	Currently, the only floating point operations that behave differently when using ##-fpmode FAST## are: ##[[KeyPgSin|sin]]()##, ##[[KeyPgCos|cos]]()##, reciprocal, and reciprocal [[KeyPgSqr|square root]], all of which must operate on ##[[KeyPgSingle|Single]]## precision values.
+	
+	A number of changes were made to normalize handling of ""NaN's"" (Not a Number) to get consistent results across toolchains and platforms, but that costs extra code, so intention was that ##-fpmode FAST## could allow user to skip that extra code generation if they wanted (and they assume responsibility how things work or do not work across platforms).
+	
+	**Note:**
+		**""-""** for x86 and x86_64, default is ##-fpu x87 -fpmode PRECISE##
+		**""-""** ##-fpmode FAST|PRECISE## controls code generation by fbc only
+		**""-""** for optimizing with '-gen gcc' backend, use '-Wc -ffast-math'
+
+{{fbdoc item="ver"}}
+	- Before fbc-1.20.0, an error message would be displayed if ##-fpmode FAST## was with anything but ##-fpu SSE##.
+
+{{fbdoc item="see"}}
+	- [[CompilerCmdLine|Using the Command Line]]
+	- [[CompilerOptfpu|Compiler Option: -fpu]]
+	- ##[[KeyPgDdfbfpmode|__FB_FPMODE__]]##
+
+{{fbdoc item="back" value="CatPgCompOpt|Compiler Options"}}
