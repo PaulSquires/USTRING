@@ -22,7 +22,52 @@ fb_UStrDelete( (FBUSTRING*)&A$1 );
 
 `-1` is `FB_USTRSIZEVARLEN`, the var-len descriptor sentinel.
 
-## Blocked: literals need a storage decision
+## Literals — done
+
+`dim as ustring u = "hello"` works. Literals are converted at compile time, so
+there is no runtime cost:
+
+```c
+fb_UStrInit( (void*)&U$0, -1ll,
+             (void*)(uint16[]){0x0068,0x0065,0x006C,0x006C,0x006F,0x0000},
+             -9223372036854775803ll, 0 );
+```
+
+(The size is `FB_STRISFIXED | 5`.)
+
+Storage is a dedicated `littextu as ushort ptr` union member holding **raw
+UTF-16 code units** — not escaped text like the z/wstring literals, so there is
+no escape/unescape round trip to get wrong. `symbAllocUstrConst()` names the
+symbol `{fbuc}` + hex of the units, which gives exact de-duplication.
+
+Both lexer paths are covered and produce identical results, which cross-checks
+the two decoders against each other:
+
+| Source | Literal dtype | Path |
+|---|---|---|
+| no BOM | `CHAR` | bytes read as UTF-8 → `hUtf8ToUstr()` |
+| UTF-8 BOM | `WCHAR` | host wchar → `hHostWstrToUstr()` |
+
+The second is why the dedicated union member matters: the lexer decodes into the
+**host** compiler's wchar width (fbc is self-hosted), 2 bytes on Windows and 4 on
+Linux, so that path has to normalize. Reusing `littextw` would have stored
+UTF-16 on one host and UTF-32 on the other.
+
+### Backend literal emission
+
+Each backend needs its own form, because none of the existing ones is
+width-correct:
+
+- **gcc** (`ir-hlc.bas`) — a C99 compound literal `(uint16[]){0x0068,…}`.
+  Not `L"…"` (wchar_t-width) and not `"…"` (byte-oriented: a 16-bit unit's high
+  NUL byte terminates it early — the first attempt emitted `"h\x00llo"`).
+- **gas64** (`ir-gas64.bas`) — `.short 0x0068,…`. `.ascii` has the same
+  early-termination problem.
+- **llvm** (`ir-llvm.bas`) — escaped little-endian bytes,
+  `[12 x i8] c"\68\00\65\00\6C\00\6C\00\6F\00\00\00"`. **Verified by inspecting
+  the IR only** — `llc` is unavailable here, so it has never been assembled.
+
+## Historical: why literals needed a storage decision
 
 **A `ustring` cannot be given content yet.** `dim as ustring u = "hello"` is
 rejected, because mixing a ustring with a narrow string is deliberately an error
@@ -66,7 +111,7 @@ wstring literals, which is the trap to avoid.
 
 ## Still owed for Phase 1
 
-- Literals (above), and the `{fbuc}` literal pool.
+- (literals: done)
 - `VAR u = <ustring expr>` inference.
 - Multi-term concat optimization (`a = b + c + d` → one assign plus N
   concat-assigns). `hOptUStrAssignment` currently handles the single

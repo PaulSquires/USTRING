@@ -277,6 +277,63 @@ function symbAllocWStrConst _
 	function = s
 end function
 
+function symbAllocUstrConst _
+	( _
+		byval units as const ushort ptr, _
+		byval unitlen as integer _
+	) as FBSYMBOL ptr
+
+	static as zstring * FB_MAXINTNAMELEN+1 id, id_alias
+	static as FBARRAYDIM dTB(0)
+	dim as FBSYMBOL ptr s = any
+	dim as integer i = any
+
+	function = NULL
+
+	if( units = NULL ) then
+		exit function
+	end if
+
+	if( unitlen < 0 ) then
+		unitlen = 0
+		while( units[unitlen] <> 0 )
+			unitlen += 1
+		wend
+	end if
+
+	'' hEscapeU() emits 4 hex chars per code unit; fall back to a unique name
+	'' when that would not fit, exactly as the z/wstring allocators do
+	if( unitlen * 4 <= FB_MAXNAMELEN-6 ) then
+		id = "{fbuc}"
+		id += *hEscapeU( units )
+	else
+		id = *symbUniqueId( )
+	end if
+
+	'' identical literals share one symbol -- the hex id makes that exact
+	s = symbLookupByNameAndClass( @symbGetGlobalNamespc( ), @id, FB_SYMBCLASS_VAR, TRUE, FALSE )
+	if( s <> NULL ) then
+		return s
+	end if
+
+	id_alias = *symbUniqueId( )
+
+	'' A literal is a fixed-length ustring: unitlen units plus the terminator,
+	'' 2 bytes each on every target. Declared SHARED, see symbAllocFloatConst().
+	var strsize = (unitlen + 1) * typeGetSize( FB_DATATYPE_FIXUSTR )
+	s = symbAddVar( @id, @id_alias, FB_DATATYPE_FIXUSTR, NULL, strsize, 0, dTB(), _
+	                FB_SYMBATTRIB_SHARED or FB_SYMBATTRIB_CONST or FB_SYMBATTRIB_LITERAL, _
+	                FB_SYMBOPT_MOVETOGLOB or FB_SYMBOPT_PRESERVECASE or FB_SYMBOPT_NODUPCHECK )
+
+	s->var_.littextu = UstrAllocate( unitlen )
+	for i = 0 to unitlen - 1
+		s->var_.littextu[i] = units[i]
+	next
+	s->var_.littextu[unitlen] = 0
+
+	function = s
+end function
+
 sub symbDelConst( byval s as FBSYMBOL ptr )
 	if( s = NULL ) then
 		exit sub

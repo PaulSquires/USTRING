@@ -160,4 +160,27 @@ declare function hWStr2Args( byval txt as const wstring ptr, res() as DWSTRING )
 
 #define WstrFree(p) if( p <> NULL ) then : deallocate( p ) : end if
 
+'' ustring literal storage: UTF-16 code units, ALWAYS 2 bytes.
+'' Deliberately not len(wstring): that is the HOST compiler's wchar width (fbc
+'' is self-hosted), which is 2 on Windows and 4 on Linux. Sizing a ustring
+'' literal by it would store the right thing on Windows and the wrong thing on
+'' Linux -- the exact bug this data type exists to remove.
+#define UstrAllocate(units) xallocate( ((units) + 1) * 2 )
+
+#define UstrFree(p) if( p <> NULL ) then : deallocate( p ) : end if
+
+declare function hUtf8ToUstr _
+	( _
+		byval src as const zstring ptr, _
+		byref units as integer _
+	) as ushort ptr
+
+declare function hHostWstrToUstr _
+	( _
+		byval src as const wstring ptr, _
+		byref units as integer _
+	) as ushort ptr
+
+declare function hEscapeU( byval src as const ushort ptr ) as zstring ptr
+
 #endif ''__HELP_STR_BI__

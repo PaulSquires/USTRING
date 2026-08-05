@@ -978,6 +978,8 @@ declare function astIsSymbolOnTree _
 		byval n as ASTNODE ptr _
 	) as integer
 
+declare function astNewUStrLiteral( byval expr as ASTNODE ptr ) as ASTNODE ptr
+
 declare function astGetStrLitSymbol _
 	( _
 		byval n as ASTNODE ptr _

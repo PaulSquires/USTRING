@@ -556,6 +556,48 @@ private sub hBuildStrLit _
 	wend
 end sub
 
+'' ustring literal -> raw little-endian bytes, always 2 per code unit.
+''
+'' Same escaped-byte form the wstring version uses, but with a fixed width
+'' instead of one that follows the target's wchar_t.
+''
+'' PARTLY VERIFIED: the emitted IR was checked by inspection --
+''    dim as ustring u = "hello"
+'' yields  [12 x i8] c"\68\00\65\00\6C\00\6C\00\6F\00\00\00"  (UTF-16LE plus
+'' terminator, 6 units x 2 bytes) -- but it has never been assembled or run,
+'' because llc is not available in the environment this was developed in. The
+'' gcc and gas64 paths are tested end to end.
+private sub hBuildUstrLit _
+	( _
+		byref ln as string, _
+		byval wantedlength as integer, _  '' in BYTES, including terminator
+		byval u as ushort ptr, _
+		byval length as integer _         '' in CODE UNITS, including terminator
+	)
+
+	dim as integer i = any, nbytes = any
+	dim as uinteger v = any
+
+	nbytes = 0
+
+	for i = 0 to length - 1
+		v = 0
+		if( u <> NULL ) then
+			v = u[i]
+		end if
+		ln += $"\" + hex( v and &hFF, 2 )
+		ln += $"\" + hex( (v shr 8) and &hFF, 2 )
+		nbytes += 2
+	next
+
+	'' pad out to the declared array size
+	while( nbytes < wantedlength )
+		ln += $"\00"
+		nbytes += 1
+	wend
+
+end sub
+
 private sub hBuildWstrLit _
 	( _
 		byref ln as string, _
@@ -664,7 +706,7 @@ private sub hEmitVariable( byval sym as FBSYMBOL ptr )
 		end if
 
 		select case( symbGetType( sym ) )
-		case FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR
+		case FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR, FB_DATATYPE_FIXUSTR
 			'' string literals are emitted as global char arrays,
 			'' this also means a bitcast to char pointer is needed
 			'' on every use of the global symbol.
@@ -672,7 +714,12 @@ private sub hEmitVariable( byval sym as FBSYMBOL ptr )
 			ln += "private constant "
 			ln += hEmitSymType( sym )
 			ln += " c"""
-			if( symbGetType( sym ) = FB_DATATYPE_WCHAR ) then
+			if( symbGetType( sym ) = FB_DATATYPE_FIXUSTR ) then
+				'' stored raw, so no unescape step; sym->lgt is already the
+				'' byte size, and the length here is in code units
+				hBuildUstrLit( ln, sym->lgt, symbGetVarLitTextU( sym ), _
+				               symbGetUstrLength( sym ) + 1 )
+			elseif( symbGetType( sym ) = FB_DATATYPE_WCHAR ) then
 				length = symbGetWstrLength( sym ) + 1
 				hBuildWstrLit( ln, length, hUnescapeW( symbGetVarLitTextW( sym ) ), length )
 			else

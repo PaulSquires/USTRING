@@ -587,11 +587,28 @@ function astNewASSIGN _
 		'' here too -- but they must never reach rtlStrAssign(), which would
 		'' hand a UTF-16 buffer to a byte-oriented runtime.
 		if( typeIsUstring( ldtype ) or typeIsUstring( rdtype ) ) then
-			'' !!!TODO!!! mixed ustring/string assignment needs the UTF-8
-			'' conversion path; until then reject it rather than corrupt it
 			if( typeIsUstring( ldtype ) <> typeIsUstring( rdtype ) ) then
-				errReport( FB_ERRMSG_TYPEMISMATCH )
-				exit function
+				'' A string LITERAL can be rebuilt as a ustring literal at
+				'' compile time, so  dim as ustring u = "hi"  costs nothing.
+				dim as ASTNODE ptr ulit = any
+				ulit = NULL
+				if( typeIsUstring( ldtype ) ) then
+					ulit = astNewUStrLiteral( r )
+				end if
+
+				if( ulit <> NULL ) then
+					astDelTree( r )
+					r = ulit
+					rdfull = astGetFullType( r )
+					rdtype = typeGet( rdfull )
+					rdclass = typeGetClass( rdtype )
+				else
+					'' !!!TODO!!! a RUNTIME narrow string still needs the UTF-8
+					'' conversion path; reject rather than hand a byte buffer
+					'' to a UTF-16 runtime
+					errReport( FB_ERRMSG_TYPEMISMATCH )
+					exit function
+				end if
 			end if
 
 			'' As with STRING below: only an initialization is emitted here.

@@ -965,6 +965,10 @@ sub symbDelVar( byval s as FBSYMBOL ptr, byval is_tbdel as integer )
 			if( s->var_.littextw <> NULL ) then
 				WstrFree( s->var_.littextw )
 			end if
+		elseif( typeGetDtAndPtrOnly( s->typ ) = FB_DATATYPE_FIXUSTR ) then
+			if( s->var_.littextu <> NULL ) then
+				UstrFree( s->var_.littextu )
+			end if
 		else
 			if( s->var_.littext <> NULL ) then
 				ZstrFree( s->var_.littext )

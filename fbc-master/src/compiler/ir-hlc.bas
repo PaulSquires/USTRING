@@ -2237,6 +2237,41 @@ private sub hBuildStrLit _
 	ln += """"
 end sub
 
+'' Emit a ustring literal as an explicit uint16 array.
+''
+'' NOT as L"..." (which hBuildWstrLit uses): that is wchar_t-width, so it would
+'' be 2 bytes per unit on Windows and 4 on Linux. And NOT as a narrow "..."
+'' literal either -- the units are 16-bit, so the first ASCII character's high
+'' byte is a NUL and a byte-oriented literal stops dead there.
+''
+'' A C99 compound literal keeps this usable in expression position, which is
+'' where string literals appear (they are inlined at use sites, not emitted as
+'' named globals).
+private sub hBuildUstrLit _
+	( _
+		byref ln as string, _
+		byval u as ushort ptr, _
+		byval length as longint _
+	)
+
+	dim as longint i = any
+
+	if( u = NULL ) then
+		ln += "(uint16[]){0}"
+		exit sub
+	end if
+
+	ln += "(uint16[]){"
+	for i = 0 to length - 1
+		if( i > 0 ) then
+			ln += ","
+		end if
+		ln += "0x" + hex( u[i], 4 )
+	next
+	ln += "}"
+
+end sub
+
 private sub hBuildWstrLit _
 	( _
 		byref ln as string, _
@@ -2393,6 +2428,9 @@ private sub hSym2Text( byref s as string, byval sym as FBSYMBOL ptr )
 	if( symbGetIsLiteral( sym ) ) then
 		if( symbGetType( sym ) = FB_DATATYPE_WCHAR ) then
 			hBuildWstrLit( s, hUnescapeW( symbGetVarLitTextW( sym ) ), symbGetWstrLength( sym ) + 1 )
+		elseif( symbGetType( sym ) = FB_DATATYPE_FIXUSTR ) then
+			'' stored raw, so there is no unescape step here
+			hBuildUstrLit( s, symbGetVarLitTextU( sym ), symbGetUstrLength( sym ) + 1 )
 		else
 			hBuildStrLit( s, hUnescape( symbGetVarLitText( sym ) ), symbGetStrLength( sym ) + 1, 0 )
 		end if

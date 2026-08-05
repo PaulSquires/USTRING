@@ -1960,3 +1960,205 @@ function hWStr2Args( byval txt as const wstring ptr, res() as DWSTRING ) as inte
 	function = t
 
 end function
+
+'' ---------------------------------------------------------------------------
+'' ustring literal helpers
+''
+'' A ustring literal is stored as RAW UTF-16 code units -- not as escaped text
+'' the way zstring/wstring literals are. There is no escape/unescape round trip
+'' to get wrong, and the stored form is byte-identical regardless of which host
+'' compiled fbc or which target it emits for.
+'' ---------------------------------------------------------------------------
+
+'' Decode UTF-8 bytes to UTF-16. Malformed input becomes U+FFFD rather than an
+'' error, matching the runtime policy in src/rtlib/ustr_utf.c: a damaged source
+'' literal should still compile to something, not abort the build.
+function hUtf8ToUstr _
+	( _
+		byval src as const zstring ptr, _
+		byref units as integer _
+	) as ushort ptr
+
+	dim as ushort ptr dst = any
+	dim as integer i = any, n = any, nbytes = any
+	dim as ubyte ptr s = any
+	dim as ulongint cp = any
+	dim as integer seqlen = any, lo2 = any, hi2 = any, k = any, ok = any
+
+	units = 0
+	if( src = NULL ) then
+		dst = UstrAllocate( 0 )
+		dst[0] = 0
+		return dst
+	end if
+
+	s = cast( ubyte ptr, src )
+	nbytes = len( *src )
+
+	'' Each source byte yields at most one code unit (a 4-byte sequence yields
+	'' a surrogate pair, but consumes 4), so this bound always holds.
+	dst = UstrAllocate( nbytes )
+
+	i = 0
+	n = 0
+	while( i < nbytes )
+		dim as uinteger b0 = s[i]
+
+		if( b0 < &h80 ) then
+			dst[n] = cushort( b0 ) : n += 1
+			i += 1
+			continue while
+		end if
+
+		'' 0x80..0xBF is a stray continuation, 0xC0/0xC1 always overlong,
+		'' 0xF5.. always beyond U+10FFFF
+		if( (b0 < &hC2) orelse (b0 > &hF4) ) then
+			dst[n] = &hFFFD : n += 1
+			i += 1
+			continue while
+		end if
+
+		if( b0 < &hE0 ) then
+			seqlen = 2 : lo2 = &h80 : hi2 = &hBF
+		elseif( b0 < &hF0 ) then
+			seqlen = 3 : lo2 = &h80 : hi2 = &hBF
+			if( b0 = &hE0 ) then lo2 = &hA0
+			if( b0 = &hED ) then hi2 = &h9F   '' would encode a surrogate
+		else
+			seqlen = 4 : lo2 = &h80 : hi2 = &hBF
+			if( b0 = &hF0 ) then lo2 = &h90   '' would be overlong
+			if( b0 = &hF4 ) then hi2 = &h8F   '' would exceed U+10FFFF
+		end if
+
+		'' validate the continuation bytes, narrowing the second byte per lead
+		ok = TRUE
+		k = 1
+		while( k < seqlen )
+			if( i + k >= nbytes ) then
+				ok = FALSE : exit while
+			end if
+			dim as uinteger bk = s[i+k]
+			if( k = 1 ) then
+				if( (bk < lo2) orelse (bk > hi2) ) then ok = FALSE : exit while
+			else
+				if( (bk and &hC0) <> &h80 ) then ok = FALSE : exit while
+			end if
+			k += 1
+		wend
+
+		if( ok = FALSE ) then
+			dst[n] = &hFFFD : n += 1
+			'' consume the maximal subpart: the lead plus whatever validated
+			if( k < 1 ) then k = 1
+			i += k
+			continue while
+		end if
+
+		select case seqlen
+		case 2
+			cp = ((b0 and &h1F) shl 6) or (s[i+1] and &h3F)
+		case 3
+			cp = ((b0 and &h0F) shl 12) or ((s[i+1] and &h3F) shl 6) or (s[i+2] and &h3F)
+		case else
+			cp = ((b0 and &h07) shl 18) or ((s[i+1] and &h3F) shl 12) or _
+			     ((s[i+2] and &h3F) shl 6) or (s[i+3] and &h3F)
+		end select
+
+		if( cp < &h10000 ) then
+			dst[n] = cushort( cp ) : n += 1
+		else
+			cp -= &h10000
+			dst[n] = cushort( &hD800 + (cp shr 10) ) : n += 1
+			dst[n] = cushort( &hDC00 + (cp and &h3FF) ) : n += 1
+		end if
+
+		i += seqlen
+	wend
+
+	dst[n] = 0
+	units = n
+
+	function = dst
+end function
+
+'' Convert a literal already lexed as wide text into UTF-16.
+''
+'' The width being read here is the HOST compiler's wstring -- 2 bytes when fbc
+'' was built on Windows, 4 on Linux -- and has nothing to do with the target.
+'' The result is UTF-16 either way.
+''
+'' NOTE the cast: indexing a `wstring ptr` directly reads zero in FreeBASIC.
+'' The pointer must be reinterpreted at its real element width first.
+function hHostWstrToUstr _
+	( _
+		byval src as const wstring ptr, _
+		byref units as integer _
+	) as ushort ptr
+
+	dim as ushort ptr dst = any
+	dim as integer i = any, n = any, nsrc = any
+
+	units = 0
+	if( src = NULL ) then
+		dst = UstrAllocate( 0 )
+		dst[0] = 0
+		return dst
+	end if
+
+	nsrc = len( *src )
+
+	'' worst case one source unit becomes a surrogate pair
+	dst = UstrAllocate( nsrc * 2 )
+
+	n = 0
+
+	if( len( wstring ) = 2 ) then
+		'' host is already UTF-16: copy through, surrogate pairs included
+		dim as ushort ptr p = cast( ushort ptr, src )
+		for i = 0 to nsrc - 1
+			dst[n] = p[i] : n += 1
+		next
+	else
+		'' host is UTF-32: encode each scalar, splitting above the BMP
+		dim as ulong ptr p = cast( ulong ptr, src )
+		for i = 0 to nsrc - 1
+			dim as ulongint cp = p[i]
+			if( cp > &h10FFFF ) then cp = &hFFFD
+			'' a lone surrogate is not a scalar value
+			if( (cp >= &hD800) andalso (cp <= &hDFFF) ) then cp = &hFFFD
+			if( cp < &h10000 ) then
+				dst[n] = cushort( cp ) : n += 1
+			else
+				cp -= &h10000
+				dst[n] = cushort( &hD800 + (cp shr 10) ) : n += 1
+				dst[n] = cushort( &hDC00 + (cp and &h3FF) ) : n += 1
+			end if
+		next
+	end if
+
+	dst[n] = 0
+	units = n
+
+	function = dst
+end function
+
+'' Build the identifier suffix used to name (and thereby de-duplicate) a ustring
+'' literal symbol. Straight hex, 4 chars per unit: exact, reversible, and with
+'' none of the escaping subtleties hEscapeW() has to deal with.
+function hEscapeU( byval src as const ushort ptr ) as zstring ptr
+	static as string res
+	dim as integer i = any
+
+	res = ""
+	if( src = NULL ) then
+		return strptr( res )
+	end if
+
+	i = 0
+	while( src[i] <> 0 )
+		res += hex( src[i], 4 )
+		i += 1
+	wend
+
+	function = strptr( res )
+end function

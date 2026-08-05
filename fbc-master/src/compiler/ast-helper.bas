@@ -1104,3 +1104,51 @@ function astBuildStrPtr( byval lhs as ASTNODE ptr ) as ASTNODE ptr
 
 	return expr
 end function
+
+'' Rebuild a z/wstring literal as a USTRING literal.
+''
+'' Returns NULL when the expression is not a literal at all -- the caller then
+'' has a genuine type mismatch (a runtime string cannot become a ustring until
+'' the UTF-8 conversion path of Phase 2 exists).
+''
+'' The two source forms differ in what they hold:
+''   CHAR  -- source file was not UTF-encoded, so the bytes are taken as UTF-8
+''            (per the STRING <-> USTRING policy); pure ASCII is unchanged
+''   WCHAR -- the lexer already decoded the source encoding, but into the HOST
+''            compiler's wchar width, which is why hHostWstrToUstr() exists
+function astNewUStrLiteral( byval expr as ASTNODE ptr ) as ASTNODE ptr
+	dim as FBSYMBOL ptr litsym = any, usym = any
+	dim as ushort ptr units = any
+	dim as integer n = any
+
+	function = NULL
+
+	if( expr = NULL ) then
+		exit function
+	end if
+
+	litsym = astGetStrLitSymbol( expr )
+	if( litsym = NULL ) then
+		exit function
+	end if
+
+	if( symbGetType( litsym ) = FB_DATATYPE_WCHAR ) then
+		units = hHostWstrToUstr( hUnescapeW( symbGetVarLitTextW( litsym ) ), n )
+	else
+		units = hUtf8ToUstr( hUnescape( symbGetVarLitText( litsym ) ), n )
+	end if
+
+	if( units = NULL ) then
+		exit function
+	end if
+
+	usym = symbAllocUstrConst( units, n )
+
+	UstrFree( units )
+
+	if( usym = NULL ) then
+		exit function
+	end if
+
+	function = astNewVAR( usym )
+end function

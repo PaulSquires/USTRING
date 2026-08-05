@@ -12,6 +12,50 @@
 #include once "ast.bi"
 
 '':::::
+'' Make both sides of a ustring binop be ustrings.
+''
+'' Only a compile-time LITERAL can be promoted -- it is rebuilt as a ustring
+'' literal, so "u + " world"" costs nothing at runtime. A runtime narrow string
+'' cannot be promoted until the UTF-8 conversion path exists, and is reported as
+'' a type mismatch rather than being reinterpreted as UTF-16.
+''
+'' Returns FALSE when the mix cannot be resolved.
+private function hUStrPromoteLit _
+	( _
+		byref l as ASTNODE ptr, _
+		byref ldtype as integer, _
+		byref r as ASTNODE ptr, _
+		byref rdtype as integer _
+	) as integer
+
+	dim as ASTNODE ptr ulit = any
+
+	'' already both ustrings?
+	if( typeIsUstring( ldtype ) = typeIsUstring( rdtype ) ) then
+		return TRUE
+	end if
+
+	if( typeIsUstring( ldtype ) ) then
+		ulit = astNewUStrLiteral( r )
+		if( ulit = NULL ) then
+			return FALSE
+		end if
+		astDelTree( r )
+		r = ulit
+		rdtype = astGetDataType( r )
+	else
+		ulit = astNewUStrLiteral( l )
+		if( ulit = NULL ) then
+			return FALSE
+		end if
+		astDelTree( l )
+		l = ulit
+		ldtype = astGetDataType( l )
+	end if
+
+	function = TRUE
+end function
+
 private function hStrLiteralConcat _
 	( _
 		byval l as ASTNODE ptr, _
@@ -969,9 +1013,7 @@ function astNewBOP _
 			end if
 
 			if( is_ustr_op ) then
-				'' !!!TODO!!! mixing ustring with a narrow string needs the
-				'' UTF-8 conversion path; reject rather than corrupt for now
-				if( typeIsUstring( ldtype ) <> typeIsUstring( rdtype ) ) then
+				if( hUStrPromoteLit( l, ldtype, r, rdtype ) = FALSE ) then
 					errReport( FB_ERRMSG_TYPEMISMATCH )
 					exit function
 				end if
@@ -1000,7 +1042,7 @@ function astNewBOP _
 
 			'' convert to: strcmp(l,r) op 0
 			if( is_ustr_op ) then
-				if( typeIsUstring( ldtype ) <> typeIsUstring( rdtype ) ) then
+				if( hUStrPromoteLit( l, ldtype, r, rdtype ) = FALSE ) then
 					errReport( FB_ERRMSG_TYPEMISMATCH )
 					exit function
 				end if

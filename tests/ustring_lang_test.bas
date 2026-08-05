@@ -82,6 +82,34 @@ end sub
 churn( )
 chk( "survived 10000 scope enter/exit cycles", 1, 1 )
 
+
+'' ------------------------------------------------------------- literals
+'' Content, not just length: a wrong-width literal still reports the right LEN
+'' (the size discriminator carries it), so equality is what actually proves the
+'' bytes landed correctly.
+dim as ustring l1 = "hello", l2 = "hello", l3 = "world"
+chk( "literal len", len(l1), 5 )
+chk( "identical literals compare equal", cint(l1 = l2), cint(-1) )
+chk( "different literals compare unequal", cint(l1 = l3), cint(0) )
+
+dim as ustring cc = "ab" + "cd"
+chk( "literal concat len", len(cc), 4 )
+chk( "literal concat content", cint(cc = "abcd"), cint(-1) )
+
+'' u &= x lowers to fb_UStrConcatAssign; must grow in place and keep content
+dim as ustring acc
+for k as integer = 1 to 100
+    acc = acc + "xy"
+next
+chk( "append loop len", len(acc), 200 )
+
+'' non-BMP: one character, TWO code units. This is the case that separates
+'' code-unit counting from character counting.
+dim as ustring bmp = "€"
+chk( "BMP char (U+20AC) is 1 code unit", len(bmp), 1 )
+dim as ustring astral = "𝄞"
+chk( "astral char is 2 code units", len(astral), 2 )
+
 print
 print g_run; " checks,"; g_fail; " failed"
 

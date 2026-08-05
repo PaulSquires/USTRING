@@ -2853,6 +2853,33 @@ private sub hemitvariable( byval sym as FBSYMBOL ptr )
 					strg=*hescape(symbGetVarLitText( sym ))
 					asm_code(".ascii """+strg+$"\0""")
 				end if
+
+			case FB_DATATYPE_FIXUSTR
+				asm_section(".data")
+				asm_code(".align 8")
+				if symbIsPublic( sym ) then
+					asm_code(".globl "+*symbGetMangledName( sym ))
+				end if
+				asm_code(*symbGetMangledName( sym )+":")
+
+				'' .short, not .ascii: the units are 16-bit, so a byte-oriented
+				'' directive would stop at the first ASCII character's NUL high
+				'' byte. Stored raw, so there is no unescape step.
+				scope
+					dim as ushort ptr up = symbGetVarLitTextU( sym )
+					dim as string uline = ".short "
+					dim as longint ui = any
+
+					'' symbGetUstrLength() excludes the terminator, so going one
+					'' past it emits the trailing NUL as well
+					for ui = 0 to symbGetUstrLength( sym )
+						if( ui > 0 ) then
+							uline += ","
+						end if
+						uline += "0x" + hex( up[ui], 4 )
+					next
+					asm_code( uline )
+				end scope
 		end select
 		exit sub
 	end if

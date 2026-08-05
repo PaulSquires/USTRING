@@ -751,6 +751,12 @@ type FBS_VAR
 	union
 		littext     as zstring ptr
 		littextw    as wstring ptr
+		'' ustring literals get their OWN member rather than sharing littextw.
+		'' fbc is self-hosted, so littextw is the HOST compiler's wstring -- 2
+		'' bytes on Windows, 4 on Linux. Sharing it would store UTF-16 on one
+		'' host and UTF-32 on the other, and the bug would be invisible to
+		'' anyone developing on Windows. A ushort ptr is 16 bits everywhere.
+		littextu    as ushort ptr
 		initree     as ASTNODE_ ptr
 	end union
 	array           as FBS_ARRAY
@@ -1664,6 +1670,15 @@ declare function symbAllocWstrConst _
 		byval lgt as integer _
 	) as FBSYMBOL ptr
 
+'' Takes RAW UTF-16 code units (NUL-terminated), not escaped text -- unlike the
+'' z/wstring literal allocators, which store the escaped form and unescape it
+'' again at emit time.
+declare function symbAllocUstrConst _
+	( _
+		byval units as const ushort ptr, _
+		byval unitlen as integer _
+	) as FBSYMBOL ptr
+
 declare function symbGetRealSize( byval sym as FBSYMBOL ptr ) as longint
 declare sub symbGetRealType( byval sym as FBSYMBOL ptr, byref dtype as integer, byref subtype as FBSYMBOL ptr )
 
@@ -2334,6 +2349,7 @@ declare function symbGetUstrLength( byval sym as FBSYMBOL ptr ) as longint
 #define symbGetVarLitText(s) s->var_.littext
 
 #define symbGetVarLitTextW(s) s->var_.littextw
+#define symbGetVarLitTextU(s) s->var_.littextu
 
 #define symbGetVarStmt(s) s->var_.stmtnum
 
