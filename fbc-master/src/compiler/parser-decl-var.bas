@@ -2275,6 +2275,12 @@ private sub cAutoVarDecl( byval baseattrib as FB_SYMBATTRIB )
 				'' zstring: create a dynamic string variable to hold the zstring data
 				dtype = FB_DATATYPE_STRING
 
+			case FB_DATATYPE_FIXUSTR
+				'' USTRING * N: create a dynamic ustring, as above. The N cannot
+				'' carry over -- an expression dtype has nowhere to put it -- and
+				'' leaving it FIXUSTR would give a 1-code-unit variable.
+				dtype = FB_DATATYPE_USTRING
+
 			end select
 		end if
 

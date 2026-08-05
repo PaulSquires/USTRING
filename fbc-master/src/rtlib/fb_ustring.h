@@ -131,9 +131,17 @@ do {                                                        \
         }                                                   \
         else if( size & FB_STRISFIXED )                     \
         {                                                   \
-            /* fix-len USTRING*N */                         \
+            /* fix-len USTRING*N.                           \
+             * The length is walked, NOT taken from the size:\
+             * the size carries the CAPACITY, and reading    \
+             * must yield the actual text length. USTRING*N  \
+             * is NUL-terminated and follows WSTRING*N here, \
+             * not STRING*N (which space-pads, so its LEN    \
+             * really is its capacity).                      \
+             * Writers take the capacity from the size       \
+             * argument directly and so are unaffected. */   \
             ptr = (FB_UCHAR *)s;                            \
-            len = size & FB_STRSIZEMSK;                     \
+            len = fb_hUStrLen( (FB_UCHAR *)s );             \
         }                                                   \
         else                                                \
         {                                                   \

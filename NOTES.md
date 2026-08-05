@@ -101,13 +101,43 @@ Option 1 won because the whole point of the type is that its representation does
 not vary by host or target, and the literal pool should not be the one place
 that assumption breaks.
 
-## Still owed for Phase 1
+## VAR inference and multi-term concat — done
 
-- `VAR u = <ustring expr>` inference.
-- Multi-term concat optimization (`a = b + c + d` → one assign plus N
-  concat-assigns). `hOptUStrAssignment` currently handles the single
-  self-concat case, which is what `&=` needs, and falls back to a plain assign
-  otherwise — correct, just not optimal.
+`VAR` infers the **dynamic** form from any ustring expression, including from a
+`USTRING * N` — the N has nowhere to live on an expression dtype, and leaving it
+fixed would produce a one-code-unit variable. Mirrors `zstring`/`STRING * N`
+inferring to `STRING`.
+
+Fixing this exposed a separate bug: `LEN` on a `USTRING * N` returned the
+**capacity** rather than the text length, because `FB_USTRSETUP` took the length
+from the size argument. The size carries the capacity (writers need it); readers
+must walk to the terminator. `USTRING * N` follows `WSTRING * N` here, not
+`STRING * N` — the latter space-pads, so its `LEN` genuinely is its capacity.
+
+Multi-term concatenation lowers to one assign plus N concat-assigns, so nothing
+is allocated per term. `u = a + b + c + d` emits:
+
+```c
+fb_UStrAssign      ( (void*)&U$0, -1ll, (void*)&A$0, -1ll, 0 );
+fb_UStrConcatAssign( (void*)&U$0, -1ll, (void*)&B$0, -1ll, 0 );
+fb_UStrConcatAssign( (void*)&U$0, -1ll, (void*)&C$0, -1ll, 0 );
+fb_UStrConcatAssign( (void*)&U$0, -1ll, (void*)&D$0, -1ll, 0 );
+```
+
+Zero `fb_UStrConcat` calls, so zero temp descriptors.
+
+This reuses `hOptStrMultConcat()`, which previously carried an `is_wstr` boolean
+and branched on it at six points. A third string type does not fit a boolean, so
+it now takes a dtype and dispatches through `hMultStrAssign()` /
+`hMultStrConcatAssign()`. That is a change to code STRING and WSTRING both use —
+verified by the full suite staying at 1154412 assertions, and by checking
+directly that `s = a + b + c + d` on a STRING still emits one `fb_StrAssign`
+plus three `fb_StrConcatAssign` and no `fb_StrConcat`.
+
+A fixed-length destination is excluded from the rewrite, as `STRING * N` is: it
+cannot grow, so the rewrite buys nothing.
+
+**Phase 1 is complete.**
 
 ## Later phases
 

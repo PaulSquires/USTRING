@@ -111,6 +111,47 @@ dim as ustring astral = "𝄞"
 chk( "astral char is 2 code units", len(astral), 2 )
 
 print
+
+'' --------------------------------------------------- VAR inference
+'' A var-len ustring expression infers a var-len ustring.
+dim as ustring va = "ab", vb = "cd"
+var vc = va + vb
+chk( "VAR from concat: len", len(vc), 4 )
+chk( "VAR from concat: content", cint(vc = "abcd"), cint(-1) )
+chk( "VAR from concat: is a descriptor", sizeof(vc), sizeof(ustring) )
+
+var vd = va
+chk( "VAR from ustring: len", len(vd), 2 )
+
+'' USTRING * N must infer to the DYNAMIC form -- the N has nowhere to live on an
+'' expression dtype, and leaving it fixed would give a 1-code-unit variable.
+dim as ustring * 8 vf = "abc"
+chk( "fixed ustring LEN is content, not capacity", len(vf), 3 )
+var vg = vf
+chk( "VAR from fixed: promoted to dynamic", sizeof(vg), sizeof(ustring) )
+chk( "VAR from fixed: len", len(vg), 3 )
+chk( "VAR from fixed: content", cint(vg = "abc"), cint(-1) )
+
+'' ------------------------------------------- multi-term concatenation
+'' Lowered to one assign plus N concat-assigns, so no temp descriptor is
+'' allocated per term. Correctness of the result is what is checked here;
+'' that no fb_UStrConcat is emitted is verified by inspecting the generated C.
+dim as ustring m1 = "1", m2 = "22", m3 = "333", m4 = "4444", mres
+mres = m1 + m2 + m3 + m4
+chk( "4-term concat len", len(mres), 10 )
+chk( "4-term concat content", cint(mres = "1223334444"), cint(-1) )
+
+'' the destination appearing on the right must still be correct
+mres = m1 + m2
+mres = mres + m3 + m4
+chk( "self on lhs of multi-concat len", len(mres), 10 )
+chk( "self on lhs of multi-concat content", cint(mres = "1223334444"), cint(-1) )
+
+'' a fixed-length destination is excluded from the rewrite; it must still work
+dim as ustring * 16 mfix
+mfix = m1 + m2 + m3
+chk( "fixed dest multi-concat", cint(mfix = "122333"), cint(-1) )
+
 print g_run; " checks,"; g_fail; " failed"
 
 if( g_fail <> 0 ) then

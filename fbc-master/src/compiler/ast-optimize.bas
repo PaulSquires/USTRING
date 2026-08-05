@@ -1546,12 +1546,51 @@ private function hDoOptRemConv( byval n as ASTNODE ptr ) as ASTNODE ptr
 end function
 
 '':::::
+'' Pick the assign / concat-assign builder for a string dtype.
+''
+'' hOptStrMultConcat() used to carry an is_wstr boolean and branch on it at six
+'' separate points. A third string type does not fit a boolean, so the choice
+'' moved here and the caller passes the dtype instead.
+private function hMultStrAssign _
+	( _
+		byval dst as ASTNODE ptr, _
+		byval src as ASTNODE ptr, _
+		byval dtype as integer _
+	) as ASTNODE ptr
+
+	if( typeIsUstring( dtype ) ) then
+		function = rtlUStrAssign( dst, src )
+	elseif( typeGet( dtype ) = FB_DATATYPE_WCHAR ) then
+		function = rtlWstrAssign( dst, src )
+	else
+		function = rtlStrAssign( dst, src )
+	end if
+
+end function
+
+private function hMultStrConcatAssign _
+	( _
+		byval dst as ASTNODE ptr, _
+		byval src as ASTNODE ptr, _
+		byval dtype as integer _
+	) as ASTNODE ptr
+
+	if( typeIsUstring( dtype ) ) then
+		function = rtlUStrConcatAssign( dst, src )
+	elseif( typeGet( dtype ) = FB_DATATYPE_WCHAR ) then
+		function = rtlWstrConcatAssign( dst, src )
+	else
+		function = rtlStrConcatAssign( dst, src )
+	end if
+
+end function
+
 private function hOptStrMultConcat _
 	( _
 		byval lnk as ASTNODE ptr, _
 		byval dst as ASTNODE ptr, _
 		byval n as ASTNODE ptr, _
-		byval is_wstr as integer _
+		byval dtype as integer _
 	) as ASTNODE ptr
 
 	if( n = NULL ) then
@@ -1567,7 +1606,7 @@ private function hOptStrMultConcat _
 	'' lowest node first..
 	if( n->l <> NULL ) then
 		if( n->l->class = AST_NODECLASS_BOP ) then
-			lnk = hOptStrMultConcat( lnk, dst, n->l, is_wstr )
+			lnk = hOptStrMultConcat( lnk, dst, n->l, dtype )
 			n->l = NULL
 		end if
 	end if
@@ -1577,34 +1616,18 @@ private function hOptStrMultConcat _
 		if( n->l <> NULL ) then
 			'' first concatenation? do an assignment..
 			if( lnk = NULL ) then
-				if( is_wstr = FALSE ) then
-					lnk = rtlStrAssign( astCloneTree( dst ), n->l )
-				else
-					lnk = rtlWstrAssign( astCloneTree( dst ), n->l )
-				end if
+				lnk = hMultStrAssign( astCloneTree( dst ), n->l, dtype )
 			else
-				if( is_wstr = FALSE ) then
-					lnk = astNewLINK( lnk, _
-						rtlStrConcatAssign( astCloneTree( dst ), _
-						n->l ), AST_LINK_RETURN_NONE )
-				else
-					lnk = astNewLINK( lnk, _
-						rtlWstrConcatAssign( astCloneTree( dst ), _
-						n->l ), AST_LINK_RETURN_NONE )
-				end if
+				lnk = astNewLINK( lnk, _
+					hMultStrConcatAssign( astCloneTree( dst ), n->l, dtype ), _
+					AST_LINK_RETURN_NONE )
 			end if
 		end if
 
 		if( n->r <> NULL ) then
-			if( is_wstr = FALSE ) then
-				lnk = astNewLINK( lnk, _
-					rtlStrConcatAssign( astCloneTree( dst ), _
-					n->r ), AST_LINK_RETURN_NONE )
-			else
-				lnk = astNewLINK( lnk, _
-					rtlWstrConcatAssign( astCloneTree( dst ), _
-					n->r ), AST_LINK_RETURN_NONE )
-			end if
+			lnk = astNewLINK( lnk, _
+				hMultStrConcatAssign( astCloneTree( dst ), n->r, dtype ), _
+				AST_LINK_RETURN_NONE )
 		end if
 
 		astDelNode( n )
@@ -1612,21 +1635,11 @@ private function hOptStrMultConcat _
 	'' string..
 	else
 		if( lnk = NULL ) then
-			if( is_wstr = FALSE ) then
-				lnk = rtlStrAssign( astCloneTree( dst ), n )
-			else
-				lnk = rtlWstrAssign( astCloneTree( dst ), n )
-			end if
+			lnk = hMultStrAssign( astCloneTree( dst ), n, dtype )
 		else
-			if( is_wstr = FALSE ) then
-				lnk = astNewLINK( lnk, _
-					rtlStrConcatAssign( astCloneTree( dst ), _
-					n ), AST_LINK_RETURN_NONE )
-			else
-				lnk = astNewLINK( lnk, _
-					rtlWstrConcatAssign( astCloneTree( dst ), _
-					n ), AST_LINK_RETURN_NONE )
-			end if
+			lnk = astNewLINK( lnk, _
+				hMultStrConcatAssign( astCloneTree( dst ), n, dtype ), _
+				AST_LINK_RETURN_NONE )
 		end if
 	end if
 
@@ -1706,6 +1719,9 @@ private function hOptUStrAssignment _
 		end if
 	end if
 
+	'' captured before n is reassigned below
+	dim as integer opdtype = astGetDataType( n )
+
 	if( optimize ) then
 		''  =                concatassign
 		'' / \                  /  \
@@ -1717,12 +1733,33 @@ private function hOptUStrAssignment _
 		astDelTree( l )
 		l = n->l
 		r = n->r
-		function = rtlUStrConcatAssign( l, astUpdStrConcat( r ) )
-		astDelNode( n )
+
+		if( hIsMultStrConcat( l, r ) ) then
+			function = hOptStrMultConcat( l, l, r, opdtype )
+		else
+			function = rtlUStrConcatAssign( l, astUpdStrConcat( r ) )
+		end if
 	else
-		function = rtlUStrAssign( l, astUpdStrConcat( r ) )
-		astDelNode( n )
+		'' convert "u = a + b + c" into "u = a : u += b : u += c", so the
+		'' result is built in one growing buffer instead of allocating a fresh
+		'' temp for every intermediate concatenation.
+		''
+		'' Excluded for a fixed-length destination, for the same reason
+		'' STRING * N is: it cannot grow, so the rewrite buys nothing and the
+		'' repeated clamping would differ from a single assignment.
+		optimize = FALSE
+		if( astGetDataType( l ) <> FB_DATATYPE_FIXUSTR ) then
+			optimize = hIsMultStrConcat( l, r )
+		end if
+
+		if( optimize ) then
+			function = hOptStrMultConcat( NULL, l, r, opdtype )
+		else
+			function = rtlUStrAssign( l, astUpdStrConcat( r ) )
+		end if
 	end if
+
+	astDelNode( n )
 
 end function
 
@@ -1733,7 +1770,7 @@ private function hOptStrAssignment _
 		byval r as ASTNODE ptr _
 	) as ASTNODE ptr
 
-	dim as integer optimize = any, is_byref = any, is_wstr = any
+	dim as integer optimize = any, is_byref = any, is_wstr = any, opdtype = any
 
 	optimize = FALSE
 	is_byref = FALSE
@@ -1792,6 +1829,8 @@ private function hOptStrAssignment _
 	end if
 
 	is_wstr = ( astGetDataType( n ) = FB_DATATYPE_WCHAR )
+	'' captured before n is reassigned below
+	opdtype = astGetDataType( n )
 
 	if( optimize ) then
 		astDelNode( n )
@@ -1801,7 +1840,7 @@ private function hOptStrAssignment _
 		r = n->r
 
 		if( hIsMultStrConcat( l, r ) ) then
-			function = hOptStrMultConcat( l, l, r, is_wstr )
+			function = hOptStrMultConcat( l, l, r, opdtype )
 		else
 			''  =            f() -- concatassign | concatbyref
 			'' / \           / \
@@ -1827,7 +1866,7 @@ private function hOptStrAssignment _
 
 		'' convert "a = b + c + d" to "a = b: a += c: a += d"
 		if( optimize ) then
-			function = hOptStrMultConcat( NULL, l, r, is_wstr )
+			function = hOptStrMultConcat( NULL, l, r, opdtype )
 		else
 			''  =            f() -- assign
 			'' / \           / \
