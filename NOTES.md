@@ -655,5 +655,84 @@ and it was left alone rather than bolted on. The practical cost is small:
 `dim as ustring u = "abc"` works, a ustring literal is already a compile-time
 pool constant, so nothing is lost at runtime.
 
-Still open: `CONST` as above; no target other than win64 has been built or run;
-and `USTRING * N` under `-gen llvm` is blocked by the pre-existing backend bug.
+## Three compilers built: win32, win64, linux-x86_64
+
+| Output | Contents |
+|---|---|
+| `fbc-win/` | `fbc32.exe` + `fbc64.exe`, sharing one `bin/` (win32 + win64 toolchains), `inc/`, `lib/win32`, `lib/win64` — the standard FB standalone layout |
+| `fbc-linux/` | `bin/fbc`, `inc/`, `lib/freebasic/linux-x86_64` |
+
+Linux was built **natively in WSL** rather than cross-compiled, using fbc's own
+bootstrap path: the win64 fbc emits C for `linux-x86_64` (`-target linux-x86_64
+-r`), and gcc inside WSL compiles those 146 files into a Linux `fbc`. No
+pre-existing Linux fbc is needed.
+
+### The 32-bit build found a real bug
+
+`USTRING * N` literals were emitted by the **32-bit x86 emitter** as:
+
+```
+_Lt_0005:	.ascii	h
+```
+
+which the assembler rejects outright. Literal emission had been fixed for gcc,
+gas64 and llvm — but `emit_x86.bas` is reached **only** on 32-bit, and until
+there was a 32-bit compiler to run, nothing could reach it. Two distinct
+defects:
+
+1. `_getTypeString()` mapped `FB_DATATYPE_FIXUSTR` into the `.ascii` group. A
+   code unit is 16 bits, so it needs `.short` — the same reasoning as gas64.
+2. `hEmitVarConst()` had no `FIXUSTR` case, so it fell through to `case else`
+   and read the **narrow** `littext`, which a ustring literal does not use.
+
+And a third, found only because the first fix half-worked: `stext` is a local in
+a `static` sub, and every other branch **assigns** to it while mine appended. So
+each literal inherited every previous one:
+
+```
+_Lt_0042:	.short	" want= "0x0061,0x0062,...0x0000 0x0077,...
+```
+
+### Verified
+
+| Compiler | lang | io | fbc unit-tests |
+|---|---|---|---|
+| `fbc-win/fbc32.exe` | 140/0 | 36/0 | 1613096 assertions, 11 failed |
+| `fbc-win/fbc64.exe` | 140/0 | 36/0 | 1154412 assertions, 11 failed |
+| `fbc64 -target win32` | 140/0 | — | — |
+| `fbc-linux/bin/fbc` | 140/0 | 36/0 | not run |
+
+The 11 are the same pre-existing ThreadCall failures in both Windows runs. The
+32-bit total differs because 32-bit builds more modules (2311 vs 2302).
+
+### Linux confirms the UTF-32 path in production
+
+`sizeof(wstring)` is 4 there, so the branch that only a unit test had exercised
+is now real:
+
+```
+ustring units   = 4      h + e-acute + astral (surrogate pair)
+sizeof(wstring) = 4
+wstring chars   = 3      the pair collapses to one scalar
+roundtrip units = 4
+identical       = -1
+```
+
+The `USTRING copied to a temporary WSTRING` warning also fires there for real,
+which on Windows is unreachable by construction.
+
+### Build notes
+
+- The FB 1.10.1 bundle's `bin/win32`/`bin/win64` gcc ships **without C headers** —
+  it can assemble and link but cannot build the rtlib. Real toolchains are
+  needed for that (`C:/dev/utils/mingw32`, `C:/dev/utils/mingw64`); the bundle's
+  `bin/` is what gets *shipped*, since that is all fbc invokes at runtime.
+- mingw32's binutils are unprefixed, so `AS`/`AR` must be passed explicitly
+  while `CC` stays prefixed.
+- Linux: only `gpm.h` was missing, so the rtlib needs `-DDISABLE_GPM`; gfxlib2
+  additionally needs `-DDISABLE_X11` because `X11/xpm.h` is absent. `ffi.h` IS
+  present there, so ThreadCall actually works on the Linux build.
+- fbc derives its prefix from its own path, so `bin/fbc` must be run in place.
+
+Still open: `CONST`; ARM/JS/DOS remain unbuilt; and `USTRING * N` under
+`-gen llvm` is blocked by the pre-existing backend bug.

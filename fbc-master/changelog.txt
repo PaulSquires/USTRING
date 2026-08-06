@@ -46,6 +46,10 @@ Version 1.20.0
 - USTRING: READ assigns DATA items. Previously a USTRING destination compiled
   cleanly and did nothing at all, and a READ list with a USTRING before the
   last item failed to parse.
+- USTRING: fix literal emission in the 32-bit x86 assembler backend, which
+  emitted a byte directive ('.ascii') for 16-bit code units and produced
+  assembly the assembler rejects. 32-bit targets could not compile any program
+  containing a USTRING literal.
 - USTRING is gated out of '-lang qb', as ZSTRING and WSTRING already are.
 
 [changed]

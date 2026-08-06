@@ -839,6 +839,34 @@ private sub hEmitVarConst _
 		next
 		stext += QUOTE
 
+	case FB_DATATYPE_FIXUSTR
+		'' Raw 16-bit units, so there is no escape step and no quoting. Without
+		'' this a ustring literal fell through to the narrow littext below and
+		'' emitted '.ascii h' -- which the assembler rejects outright. Only the
+		'' 32-bit x86 emitter went through here, so it was the one backend the
+		'' literal work missed.
+		scope
+			'' declared and assigned separately: this sub is STATIC, so a local
+			'' with an initializer needs a constant one
+			dim as ushort ptr up = any
+			dim as longint ui = any
+
+			up = symbGetVarLitTextU( s )
+
+			'' stext is STATIC and the other branches assign rather than append,
+			'' so it must be cleared or every literal inherits the previous one
+			stext = ""
+
+			'' symbGetUstrLength() excludes the terminator, so going one past it
+			'' emits the trailing NUL as well
+			for ui = 0 to symbGetUstrLength( s )
+				if( ui > 0 ) then
+					stext += ","
+				end if
+				stext += "0x" + hex( up[ui], 4 )
+			next
+		end scope
+
 	case else
 		stext = *symbGetVarLitText( s )
 	end select
@@ -8006,9 +8034,14 @@ private function _getTypeString( byval dtype as integer ) as const zstring ptr
 	case FB_DATATYPE_LONGINT, FB_DATATYPE_ULONGINT, FB_DATATYPE_DOUBLE
 		'' DOUBLE: ditto, instead of .double
 		function = @".quad"
-	case FB_DATATYPE_FIXSTR, FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR, FB_DATATYPE_FIXUSTR
+	case FB_DATATYPE_FIXSTR, FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR
 		'' wchar stills the same as it is emitted as escape sequences
 		function = @".ascii"
+	case FB_DATATYPE_FIXUSTR
+		'' NOT .ascii: a ustring code unit is 16 bits, and a byte-oriented
+		'' directive stops at the first ASCII character's NUL high byte. Emitted
+		'' as raw hex units by hEmitVarConst, matching the gas64 backend.
+		function = @".short"
 	case FB_DATATYPE_STRING, FB_DATATYPE_STRUCT
 		function = @".INVALID"
 	case FB_DATATYPE_POINTER

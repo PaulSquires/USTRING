@@ -28,3 +28,9 @@ tests/ll_*
 tests/ref_gcc*
 tests/*.ll
 __pycache__/
+
+# built compiler installations and intermediates (large binaries)
+build/
+fbc-win/
+fbc-linux/
+fbc-master/bootstrap/
