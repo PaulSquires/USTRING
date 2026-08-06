@@ -24,3 +24,7 @@ tests/*.o
 *.tmp
 
 tests/ustring_gfx_test.out
+tests/ll_*
+tests/ref_gcc*
+tests/*.ll
+__pycache__/

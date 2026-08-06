@@ -291,11 +291,11 @@ exhaustion, which reads as length 0 rather than as a crash), and
 `%FBUSTRING = type { i16*, i64, i64 }` is now emitted. Previously the IR
 *referenced* the type without defining it, which llvm rejects outright.
 
-The IR still cannot be assembled here, but for a **pre-existing** reason now
-pinned down precisely: fbc 1.20's LLVM output uses an obsolete `llvm.memset`
-intrinsic signature that clang 21 rejects. A plain `STRING` program with no
-ustring anywhere fails identically, so this is an fbc-vs-clang version gap, not
-a ustring problem.
+The IR could not be assembled at the time this was written, and the reason
+recorded here — an obsolete `llvm.memset` signature — was **wrong**. See
+*The LLVM backend, now actually assembled* below for what it really is (three
+pre-existing constructs, all reproducible with a plain `STRING` program) and for
+the dynamic ustring path now being assembled, linked and run.
 
 ### Targets
 
@@ -391,6 +391,7 @@ Phases 0-6 complete. Verified on win64 only, under both `-gen gcc` and
 | `tests/ustring_lang_test.bas` | 134 |
 | `tests/ustring_io_test.bas` | 36 |
 | `tests/ustring_gfx_test.bas` | 13 |
+| `tests/ustring_llvm_test.bas` | llvm output byte-identical to gcc |
 | fbc suite | 1154412 assertions, 11 failed (all pre-existing ThreadCall) |
 
 ## PRINT USING
@@ -520,6 +521,45 @@ expectations — wstring has always been right here, so it is the reference. All
 three encodings, both directions, plus a check that a plain file is still
 untouched UTF-8.
 
-Still open: linux64/ARM/JS/DOS are untested, and the LLVM path is verified by
-reading IR but never assembled (fbc 1.20's IR uses an obsolete `llvm.memset`
-signature clang 21 rejects, independently of ustring).
+## The LLVM backend, now actually assembled
+
+This was previously recorded as "verified by reading the IR", with the reason
+given as an obsolete `llvm.memset` signature. **That reason was wrong.** Running
+it down properly, a modern clang rejects fbc 1.20's IR for three separate
+things, none of them ustring's - a plain STRING program fails identically:
+
+| # | Construct | Status |
+|---|---|---|
+| 1 | `@llvm.global_ctors` in the obsolete 2-field form | patched by the shim |
+| 2 | typed pointers (`i8*`), removed in LLVM 17 | patched by the shim |
+| 3 | a **constant-expression** `bitcast` of a function-local `alloca` | not patchable |
+
+(3) is emitted for every fixed-length local:
+
+```llvm
+%vr97 = bitcast i16* bitcast ([16 x i8]* %F.8 to i16*) to i8*
+```
+
+`WSTRING * N` and `ZSTRING * N` emit the **identical** construct, which is how
+we know it is a pre-existing backend bug rather than something ustring
+introduced. It does mean `USTRING * N` cannot be assembled here, so
+`ustring_llvm_test.bas` deliberately omits it and leaves that form to the gcc
+and gas64 suites, which cover it.
+
+With (1) and (2) rewritten by `tools/modernize_ll.py`, the **dynamic** ustring
+path assembles, links and runs - and its output is **byte-identical** to the
+`-gen gcc` build. So the `%FBUSTRING` type definition, the literal byte arrays
+and the runtime call signatures are now executed rather than eyeballed. The
+euro check (`e[0]` = 8364) is the one that matters: it proves a non-ASCII
+literal survives the llvm backend's escaped little-endian emission at the right
+width.
+
+```bash
+sh tools/check_llvm.sh
+```
+
+The shim is a test harness, not a proposed fix. Emitting the current dialect is
+fbc's llvm backend's own job and is out of scope here.
+
+Still open: linux64/ARM/JS/DOS are untested, and `USTRING * N` under `-gen llvm`
+is blocked by the pre-existing backend bug above.

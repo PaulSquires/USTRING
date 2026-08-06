@@ -64,6 +64,14 @@ rm -f tests/fbc-tests.exe tests/unit-tests.inc tests/unit-tests-obj.lst
 Confirm it actually rebuilt by checking the compile count in the log — it should
 be ~670, not 1.
 
+## The LLVM backend needs a shim, for pre-existing reasons
+
+`fbc -gen llvm` drives `llc`, which a clang-only install does not ship, and the
+IR it emits is several LLVM releases out of date. `sh tools/check_llvm.sh`
+works around both and diffs the result against `-gen gcc`. None of the three
+blocking constructs is ustring's — a plain `STRING` program reproduces all of
+them. Details in `NOTES.md`.
+
 ## Build commands used
 
 ```
