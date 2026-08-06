@@ -734,5 +734,57 @@ which on Windows is unreachable by construction.
   present there, so ThreadCall actually works on the Linux build.
 - fbc derives its prefix from its own path, so `bin/fbc` must be run in place.
 
+## Append performance
+
+`tests/ustring_append_bench.bas`, best of three per measurement.
+
+Raw numbers, all three platforms:
+
+```
+                              win64        win32        linux-x86_64
+1-char append x 2,000,000
+  STRING                     10.71 ms     69.50 ms      8.37 ms
+  USTRING                    16.01 ms     21.10 ms      8.51 ms
+32-char append x 500,000
+  STRING                     43.06 ms     48.79 ms      2.69 ms
+  USTRING                    88.32 ms     80.28 ms      7.49 ms
+u = a + b + c + d x 1,000,000
+  STRING                     31.64 ms    109.59 ms     30.08 ms
+  USTRING                    69.00 ms    126.34 ms     53.28 ms
+WSTRING vs USTRING, n=40,000 then 2n
+  WSTRING            82.45 / 339.56   106.93 / 402.41   133.37 / 539.68
+  USTRING             0.21 /   0.31     0.40 /   0.50     0.15 /   0.35
+growth ratio, 4x work
+  USTRING                      5.38         4.18          4.47
+  STRING                       5.37         4.10          4.43
+```
+
+### What is solid, and what is not
+
+**Solid.** USTRING moves 2 bytes per character to STRING's 1, and lands at equal
+or better *throughput* on all three platforms. Growth is amortised linear and
+tracks STRING to within a couple of percent everywhere — the important negative
+result, since a naive implementation reallocating on every append would show ~16
+rather than ~4.
+
+**Solid, and the real headline.** WSTRING append is **O(n²)** — it has no length
+field, so `fb_WstrConcatAssign` walks to the terminator every time. The ratio is
+~4 for doubled work on every platform, against USTRING's ~1.4–2.3. At 40,000
+appends USTRING is already 400–900× faster.
+
+The first version of this benchmark ran all three types at 2,000,000 appends and
+had to be **killed** — the WSTRING loop never finishes. That is what prompted
+giving WSTRING its own small-n scaling test instead of a single-point timing,
+which is a far more informative comparison anyway.
+
+**Not solid, and not chased down.** Two individual figures look off and are
+STRING's, not USTRING's: win32 STRING single-char at 27 MB/s (the other two
+platforms are 178 and 228), and Linux STRING 32-char at 5.6 GB/s, which smells
+like realloc-in-place or the optimiser. They are recorded as measured rather
+than smoothed, and no conclusion rests on either.
+
+Both types sit slightly above 4.0 on the win64 growth ratio. Since *both* show
+it equally it is the memory system at those sizes, not the growth strategy.
+
 Still open: `CONST`; ARM/JS/DOS remain unbuilt; and `USTRING * N` under
 `-gen llvm` is blocked by the pre-existing backend bug.

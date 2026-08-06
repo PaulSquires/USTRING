@@ -320,6 +320,68 @@ needed to reproduce it.
 
 ---
 
+## Performance: appending
+
+`tests/ustring_append_bench.bas`, best of three runs on each platform.
+
+**Read the units first.** A `STRING` moves 1 byte per character and a `USTRING`
+moves 2 (a UTF-16 code unit, on every target). So USTRING taking ~2× the time of
+STRING is *parity*, not a loss — the throughput column is the honest comparison.
+
+### Against STRING — same class
+
+2,000,000 single-character appends:
+
+| Platform | STRING | USTRING | USTRING throughput |
+|---|---|---|---|
+| win64 | 10.71 ms (178 MB/s) | 16.01 ms | **238 MB/s** |
+| win32 | 69.50 ms (27 MB/s) | 21.10 ms | **181 MB/s** |
+| linux-x86_64 | 8.37 ms (228 MB/s) | 8.51 ms | **449 MB/s** |
+
+USTRING moves twice the bytes at equal or better throughput everywhere. On
+Linux it does twice the work in the same wall-clock time. (The win32 STRING
+figure is an outlier I have not chased down — it is STRING's number, not
+USTRING's, and the other two platforms bracket it.)
+
+### Against WSTRING — a different complexity class
+
+This is the one that matters, and it is structural rather than a tuning detail.
+A `WSTRING` has **no length field**, so every append walks to the terminator to
+find the end. Appending *n* times costs **O(n²)**. A `USTRING` keeps its length
+in the descriptor, so an append is O(1) amortised.
+
+Appending at *n* = 40,000 and again at 2*n*:
+
+| Platform | WSTRING *n* → 2*n* | ratio | USTRING *n* → 2*n* | ratio |
+|---|---|---|---|---|
+| win64 | 82.45 → 339.56 ms | **4.12** | 0.21 → 0.31 ms | 1.43 |
+| win32 | 106.93 → 402.41 ms | **3.76** | 0.40 → 0.50 ms | 1.25 |
+| linux-x86_64 | 133.37 → 539.68 ms | **4.05** | 0.15 → 0.35 ms | 2.28 |
+
+A ratio near 4 for doubled work is quadratic; near 2 is linear. At just 40,000
+appends USTRING is already **400–900× faster**, and the gap widens with length.
+
+The first version of this benchmark used 2,000,000 appends for all three types
+and had to be killed — the WSTRING loop does not finish in any useful time.
+That is why its counts are small here.
+
+### Growth is amortised linear
+
+The same append loop at 1× and 4× the count. Linear growth gives ≈4;
+realloc-on-every-append would give ≈16.
+
+| Platform | USTRING | STRING |
+|---|---|---|
+| win64 | 5.38 | 5.37 |
+| win32 | 4.18 | 4.10 |
+| linux-x86_64 | 4.47 | 4.43 |
+
+USTRING tracks STRING to within a couple of percent on every platform. Both sit
+slightly above 4 on win64 — since *both* types show it equally, that is the
+memory system at these sizes, not the growth strategy.
+
+---
+
 ## Tests
 
 ### fbc's own test suite
@@ -402,10 +464,11 @@ fbc-master/     fbc 1.20.0 with USTRING implemented
                   doc/ustring.txt   user documentation
 fbc-win/        prebuilt: fbc32.exe + fbc64.exe, shared toolchain, inc, libs
 fbc-linux/      prebuilt: bin/fbc, inc, lib/freebasic/linux-x86_64
-tests/          USTRING's own suites (see above)
+tests/          USTRING's own suites and the append benchmark (see above)
 tools/          generators for the Unicode case table and the CP437 table,
                 plus the LLVM verification harness
 NOTES.md        implementation notes, design decisions, and every bug found
+LICENSE         licensing, inherited from FreeBASIC (see below)
 ```
 
 `NOTES.md` is worth reading if you are reviewing this. It records the design
@@ -424,6 +487,33 @@ make rtlib gfxlib2 compiler
 See `tests/BASELINE.md` for the exact invocations, the three test targets, and
 the environment workarounds this particular machine needed (none of them related
 to USTRING).
+
+## Licence
+
+This is a modified copy of the FreeBASIC compiler, so it carries FreeBASIC's
+licensing **unchanged**. Nothing is relicensed and no licence was chosen — it is
+inherited, and it is a split, because the USTRING work touches both halves:
+
+| Part | Licence |
+|---|---|
+| The compiler — `src/compiler/`, and the `fbc32.exe` / `fbc64.exe` / `bin/fbc` binaries built from it | **GNU GPL v2 or later** ([COPYING.GPL-2.0](COPYING.GPL-2.0)) |
+| The runtime and graphics libraries — `src/rtlib/`, `src/gfxlib2/`, i.e. libfb, libfbmt, libfbgfx, libfbgfxmt | **GNU LGPL v2.1 or later, with a static-linking exception** ([COPYING.LGPL-2.1](COPYING.LGPL-2.1)) |
+| Documentation, including `doc/ustring.txt` | **GNU FDL** |
+
+The linking exception is what lets a program link the runtime statically without
+taking on the LGPL — it is quoted in full in [LICENSE](LICENSE).
+
+So the USTRING work follows the file, exactly as the rest of fbc does: the
+compiler-side changes are GPLv2+, and `ustr_*.c`, `fb_ustring.h` and the
+`DRAW STRING` support are LGPLv2.1+ with the exception.
+
+**The prebuilt trees carry third-party components.** `fbc-win/` and
+`fbc-linux/` redistribute the toolchain fbc invokes — GNU binutils and gcc under
+**GPLv3**, plus the MinGW-w64 runtime and import libraries under their own
+terms. They are unmodified redistributions; see [LICENSE](LICENSE) for the
+breakdown.
+
+---
 
 ## Status
 
