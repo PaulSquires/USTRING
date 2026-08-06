@@ -46,6 +46,40 @@ Two environment workarounds are required; neither is related to ustring.
 
 `gfxlib2` must also be built (`make gfxlib2`) — the suite links `-lfbgfxmt`.
 
+## There are THREE test targets, not one
+
+`unit-tests` is the one everyone runs, and it is not the whole suite - it holds
+670 of the 2515 `.bas` files. The root makefile also has:
+
+| Target | What it is | Scale |
+|---|---|---|
+| `unit-tests` | fbcunit assertions | 670 modules, 1154412 assertions |
+| `log-tests` | compile-and-run, **per dialect** | 1687 tests across fb / fblite / qb / deprecated |
+| `warning-tests` | exact compiler diagnostics, **per target** | 68 files x 5 targets = 340 runs |
+
+All three matter for a change like this. `log-tests` is the only thing that
+exercises `-lang qb`, where USTRING must NOT be a keyword; `warning-tests`
+compiles for **dos, linux-x86, linux-x86_64, win32 and win64** (with `-r`, so no
+cross-assembler is needed) and is the only cross-target coverage available here.
+
+### Running them
+
+```
+cd tests && make log-tests FBC="C:/dev/ustring/fbc-master/bin/fbc.exe -i C:/dev/ustring/fbc-master/inc -p C:/dev/utils/mingw64/lib"
+cd tests/warnings && FBC="C:/dev/ustring/fbc-master/bin/fbc.exe" bash ./test.sh
+```
+
+Two environment notes, neither related to ustring:
+
+1. **`-p C:/dev/utils/mingw64/lib`** - without it the four `cpp/*` log-tests fail
+   with `cannot find -lstdc++`. `libstdc++.a` exists in that directory but not in
+   the gcc lib directory the linker searches. Adding the path makes all four
+   link and run.
+2. **`warning-tests` is a git-diff test.** `test.sh` regenerates
+   `tests/warnings/r/<target>/*.txt` and you check with `git diff` whether
+   anything moved. On Windows the regenerated files may differ only in line
+   endings, which `git diff` normalises away - compare content, not `git status`.
+
 ## Trap: `clean-tests` is a ROOT makefile target
 
 `clean-tests` is defined in `fbc-master/makefile`, **not** in `tests/Makefile`.

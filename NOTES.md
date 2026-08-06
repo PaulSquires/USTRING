@@ -393,7 +393,9 @@ Phases 0-6 complete. Verified on win64 only, under both `-gen gcc` and
 | `tests/ustring_io_test.bas` | 36 |
 | `tests/ustring_gfx_test.bas` | 13 |
 | `tests/ustring_llvm_test.bas` | llvm output byte-identical to gcc |
-| fbc suite | 1154412 assertions, 11 failed (all pre-existing ThreadCall) |
+| fbc `unit-tests` | 1154412 assertions, 11 failed (all pre-existing ThreadCall) |
+| fbc `log-tests` | 1687 tests across fb/fblite/qb/deprecated, **0 failed** |
+| fbc `warning-tests` | 68 files x 5 targets, **0 diagnostic changes** |
 
 ## PRINT USING
 
