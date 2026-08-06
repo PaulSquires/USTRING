@@ -29,8 +29,6 @@ tests/ref_gcc*
 tests/*.ll
 __pycache__/
 
-# built compiler installations and intermediates (large binaries)
+# build intermediates (the finished installations ARE tracked)
 build/
-fbc-win/
-fbc-linux/
 fbc-master/bootstrap/
