@@ -255,6 +255,71 @@ compile-time pool constant, so nothing is lost at runtime.
 
 ---
 
+## Prebuilt compilers
+
+You do not have to build anything to try this. Two ready-to-run installations
+are in the repository, produced from this tree and verified before being
+committed.
+
+### `fbc-win/` — Windows, 32-bit and 64-bit
+
+```
+fbc-win/
+  fbc32.exe          32-bit compiler
+  fbc64.exe          64-bit compiler
+  bin/win32          i686 assembler + linker      shared by both
+  bin/win64          x86-64 assembler + linker    shared by both
+  inc/               FreeBASIC headers
+  lib/win32          32-bit runtime
+  lib/win64          64-bit runtime
+```
+
+The standard FreeBASIC *standalone* layout: both compilers sit at the top level
+and share one `bin/` and one `inc/`, each picking the toolchain and runtime that
+matches its target.
+
+```bat
+fbc-winbc64.exe hello.bas
+fbc-winbc32.exe hello.bas
+fbc-winbc64.exe -target win32 hello.bas   :: 64-bit compiler, 32-bit output
+```
+
+### `fbc-linux/` — Linux x86-64
+
+```
+fbc-linux/
+  bin/fbc
+  inc/
+  lib/freebasic/linux-x86_64
+```
+
+```bash
+fbc-linux/bin/fbc hello.bas
+```
+
+This is a **native** Linux build, not a cross-compile. It came from fbc's own
+bootstrap path: the win64 compiler emits C for `linux-x86_64`, and gcc compiles
+those 146 files into a Linux `fbc` — so no pre-existing Linux FreeBASIC is
+needed to reproduce it.
+
+### Things worth knowing
+
+- **Run `fbc` where it lives.** It derives its installation prefix from its own
+  path, so `bin/fbc` must stay beside `inc/` and `lib/`. Copying just the binary
+  elsewhere gives `cannot open linker script file`.
+- **The Linux binary is committed with its executable bit set** (mode `100755`),
+  and `.gitattributes` keeps that tree from being CRLF-converted by a Windows
+  clone. If you extract it some other way, `chmod +x bin/fbc`.
+- **`fbc-win/bin`'s gcc has no C headers**, exactly as FreeBASIC's own
+  distribution ships it. It assembles and links, which is all fbc asks of it,
+  but it cannot rebuild the runtime — that needs a full toolchain.
+- **The Linux `gfxlib2` is built `-DDISABLE_X11 -DDISABLE_GPM`**, because
+  `X11/xpm.h` and `gpm.h` were unavailable on the build machine. Console, fbdev
+  and everything else are present. `ffi.h` *was* available there, so `ThreadCall`
+  works on the Linux build — unlike the Windows ones here.
+
+---
+
 ## Tests
 
 ### fbc's own test suite
@@ -335,6 +400,8 @@ fbc-master/     fbc 1.20.0 with USTRING implemented
                   src/rtlib/     21 new files (ustr_*.c, fb_ustring.h, ...)
                   src/gfxlib2/   DRAW STRING support, 2 new files
                   doc/ustring.txt   user documentation
+fbc-win/        prebuilt: fbc32.exe + fbc64.exe, shared toolchain, inc, libs
+fbc-linux/      prebuilt: bin/fbc, inc, lib/freebasic/linux-x86_64
 tests/          USTRING's own suites (see above)
 tools/          generators for the Unicode case table and the CP437 table,
                 plus the LLVM verification harness
