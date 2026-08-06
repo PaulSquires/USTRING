@@ -9,7 +9,7 @@
 ** Build (from C:\dev\ustring):
 **   gcc -O2 -Wall -I fbc-master/src/rtlib tests/ustr_core_test.c \
 **       fbc-master/src/rtlib/ustr_core.c fbc-master/src/rtlib/ustr_prim.c \
-**       fbc-master/src/rtlib/list.c -o tests/ustr_core_test.exe
+**       fbc-master/src/rtlib/list.c fbc-master/src/rtlib/listdyn.c \n**       -o tests/ustr_core_test.exe
 */
 
 #include "fb.h"

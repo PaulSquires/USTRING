@@ -388,6 +388,7 @@ Phases 0-6 complete. Verified on win64 only, under both `-gen gcc` and
 |---|---|
 | `tests/ustr_codec_test.c` | 70 |
 | `tests/ustr_core_test.c` | 38 |
+| `tests/ustr_wchar_test.c` | 25 (all three wchar widths) |
 | `tests/ustring_lang_test.bas` | 134 |
 | `tests/ustring_io_test.bas` | 36 |
 | `tests/ustring_gfx_test.bas` | 13 |
@@ -561,5 +562,50 @@ sh tools/check_llvm.sh
 The shim is a test harness, not a proposed fix. Emitting the current dialect is
 fbc's llvm backend's own job and is out of scope here.
 
-Still open: linux64/ARM/JS/DOS are untested, and `USTRING * N` under `-gen llvm`
-is blocked by the pre-existing backend bug above.
+## The other wchar widths, actually executed
+
+`hWcharToUnits` / `hUnitsToWchar` branch on `sizeof(FB_WCHAR)`, and those
+branches **fold away at compile time**. On Windows FB_WCHAR is 16 bits, so the
+UTF-32 branch (Linux) and the 8-bit branch (DOS) were never compiled into
+anything runnable. Dead code is untested code — and it is exactly the code a
+Windows developer cannot check, while every claim about ustring on Linux runs
+straight through it.
+
+The two helpers moved out of `ustr_convw.c` into `ustr_wchar_conv.h`, which
+`tests/ustr_wchar_test.c` includes **three times**, once per width, renaming the
+functions each time. So all three branches run natively, against *that* source
+rather than a copy of it — a test of a copied function would prove nothing.
+
+25 checks. The ones that matter are the ones only the UTF-32 branch can pass:
+
+| Check | Why |
+|---|---|
+| `U+1D11E` → `D834 DD1E` | an astral scalar becomes a surrogate pair |
+| measure counts **5** for 3 scalars | the unit count is not the character count; getting this wrong under-allocates and truncates **on Linux only** |
+| `0x110000`, lone surrogate → `U+FFFD` | not valid scalars in UTF-32 either |
+| 6 units → 5 chars → 6 units | round trip through the Linux representation |
+| lone surrogate stays 2 chars | must not swallow its neighbour |
+| `0xE9` → `U+00E9`, not `U+FFE9` | the DOS cast goes through **unsigned** char |
+| short buffer reports the full count, writes nothing past capacity | truncation safety in every branch |
+
+### The harness was checked against a deliberate bug
+
+A passing test proves nothing until it has been seen to fail. Swapping
+`FB_UCHAR_CP_LOWSUR` for `FB_UCHAR_CP_HIGHSUR` in the UTF-32 branch produces:
+
+```
+FAIL w32 astral -> surrogate pair
+  got  [0061 D834 D834 0062]
+  want [0061 D834 DD1E 0062]
+25 checks, 2 failed
+```
+
+so the branch really is being executed, and the assertions really do bite.
+
+This does **not** make ustring verified on Linux or DOS — nothing has been built
+or run on those targets. It makes the *width-dependent conversion logic*
+verified at all three widths, which was the single largest piece of never-
+executed code in the implementation.
+
+Still open: no target other than win64 has been built or run, and `USTRING * N`
+under `-gen llvm` is blocked by the pre-existing backend bug above.

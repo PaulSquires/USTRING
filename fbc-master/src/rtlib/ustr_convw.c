@@ -20,113 +20,11 @@
 
 #include "fb.h"
 
-/* wstring -> ustring, into a caller-provided buffer sized by the measure pass.
-   Returns units written (excluding the terminator); dst may be NULL to measure. */
-static ssize_t hWcharToUnits( const FB_WCHAR *src, ssize_t src_chars,
-                              FB_UCHAR *dst, ssize_t dst_units )
-{
-	if( sizeof( FB_WCHAR ) == 2 )
-	{
-		/* already UTF-16, including any surrogate pairs */
-		ssize_t n = src_chars;
-		if( dst != NULL )
-		{
-			ssize_t i, lim = (n < dst_units) ? n : dst_units;
-			for( i = 0; i < lim; i++ )
-				dst[i] = (FB_UCHAR)src[i];
-			dst[lim] = 0;
-		}
-		return n;
-	}
-	else if( sizeof( FB_WCHAR ) == 4 )
-	{
-		/* UTF-32 -> UTF-16; a scalar above the BMP becomes a surrogate pair,
-		   so the unit count is NOT the character count */
-		ssize_t i, n = 0;
-		for( i = 0; i < src_chars; i++ )
-		{
-			uint32_t cp = (uint32_t)src[i];
-			if( (cp > FB_UCHAR_MAX_CP) || FB_UCHAR_IS_SUR( cp ) )
-				cp = FB_UCHAR_REPLACEMENT;
-
-			if( cp < 0x10000u )
-			{
-				if( (dst != NULL) && (n < dst_units) ) dst[n] = (FB_UCHAR)cp;
-				n++;
-			}
-			else
-			{
-				if( (dst != NULL) && (n < dst_units) ) dst[n] = FB_UCHAR_CP_HIGHSUR( cp );
-				n++;
-				if( (dst != NULL) && (n < dst_units) ) dst[n] = FB_UCHAR_CP_LOWSUR( cp );
-				n++;
-			}
-		}
-		if( dst != NULL )
-			dst[(n < dst_units) ? n : dst_units] = 0;
-		return n;
-	}
-	else
-	{
-		/* DOS: FB_WCHAR is char. Latin-1 is the best this target can do. */
-		ssize_t i, n = src_chars;
-		if( dst != NULL )
-		{
-			ssize_t lim = (n < dst_units) ? n : dst_units;
-			for( i = 0; i < lim; i++ )
-				dst[i] = (FB_UCHAR)(unsigned char)src[i];
-			dst[lim] = 0;
-		}
-		return n;
-	}
-}
-
-/* ustring -> wstring. Returns chars written (excluding the terminator). */
-static ssize_t hUnitsToWchar( const FB_UCHAR *src, ssize_t src_units,
-                              FB_WCHAR *dst, ssize_t dst_chars )
-{
-	if( sizeof( FB_WCHAR ) == 2 )
-	{
-		ssize_t n = src_units;
-		if( dst != NULL )
-		{
-			ssize_t i, lim = (n < dst_chars) ? n : dst_chars;
-			for( i = 0; i < lim; i++ )
-				dst[i] = (FB_WCHAR)src[i];
-			dst[lim] = 0;
-		}
-		return n;
-	}
-	else if( sizeof( FB_WCHAR ) == 4 )
-	{
-		/* UTF-16 -> UTF-32: a surrogate pair collapses into one char */
-		ssize_t i = 0, n = 0;
-		while( i < src_units )
-		{
-			ssize_t used;
-			uint32_t cp = fb_hUStrCodepointAt( src, src_units, i, &used );
-			if( (dst != NULL) && (n < dst_chars) ) dst[n] = (FB_WCHAR)cp;
-			n++;
-			i += used;
-		}
-		if( dst != NULL )
-			dst[(n < dst_chars) ? n : dst_chars] = 0;
-		return n;
-	}
-	else
-	{
-		/* DOS: anything outside Latin-1 cannot be represented */
-		ssize_t i, n = src_units;
-		if( dst != NULL )
-		{
-			ssize_t lim = (n < dst_chars) ? n : dst_chars;
-			for( i = 0; i < lim; i++ )
-				dst[i] = (FB_WCHAR)((src[i] < 256) ? src[i] : '?');
-			dst[lim] = 0;
-		}
-		return n;
-	}
-}
+/* The two width-dependent helpers live in a header so they can be compiled at
+   all THREE wchar widths by tests/ustr_wchar_test.c. On this target two of the
+   three branches are dead code, and dead code is untested code -- see the note
+   at the top of that header. */
+#include "ustr_wchar_conv.h"
 
 /* --------------------------------------------------------------- assignment */
 
