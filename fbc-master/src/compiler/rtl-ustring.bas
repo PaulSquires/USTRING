@@ -1159,6 +1159,12 @@ function rtlUStrAssignMid _
 
 	astSetType( proc, FB_DATATYPE_VOID, NULL )
 
+	'' EMIT it. cMidStmt only checks the result for NULL and never adds the
+	'' node itself -- the narrow rtlStrAssignMid astAdd()s before returning, so
+	'' this must too. Without it the MID statement compiled, reported success,
+	'' and silently did nothing. (Same mistake as rtlStrLRSet in phase 3.)
+	astAdd( proc )
+
 	function = proc
 end function
 

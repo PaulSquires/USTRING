@@ -50,6 +50,16 @@ Version 1.20.0
   emitted a byte directive ('.ascii') for 16-bit code units and produced
   assembly the assembler rejects. 32-bit targets could not compile any program
   containing a USTRING literal.
+- USTRING: fix the MID statement, which compiled and then did nothing at all.
+- USTRING: fix STRPTR on a var-len USTRING, which returned the descriptor's own
+  address (equal to VARPTR) instead of the data pointer, typed as CHAR PTR. It
+  now yields USHORT PTR, the code-unit type, on every target.
+- USTRING: fix copy-back for a USTRING * N argument bound to a BYREF USTRING
+  parameter; writes by the callee were silently discarded. STRING * N and
+  WSTRING * N already copied back.
+- USTRING: reject 'USTRING * N' as a function result, matching STRING * N and
+  WSTRING * N (error 55). It was accepted and then miscompiled -- the gcc
+  backend typed the result as a single uint16, truncating the pointer.
 - USTRING is gated out of '-lang qb', as ZSTRING and WSTRING already are.
 
 [changed]

@@ -1188,6 +1188,25 @@ function astNewUStrConv( byval expr as ASTNODE ptr ) as ASTNODE ptr
 	function = rtlStrToUStr( expr )
 end function
 
+'' STRPTR() for a ustring: the descriptor's data pointer, as USHORT PTR.
+''
+'' Separate from astBuildUStrPtr() above, which yields a WCHAR PTR and is only
+'' valid where a wchar is 16 bits. STRPTR must work on EVERY target, and a code
+'' unit is uint16 everywhere, so USHORT is the honest element type here.
+function astBuildUStrDataPtr( byval lhs as ASTNODE ptr ) as ASTNODE ptr
+	dim as integer dtype = any
+
+	'' *cast( ushort const ptr ptr, @lhs )
+	dtype = FB_DATATYPE_USHORT
+	if( typeIsConst( lhs->dtype ) ) then
+		dtype = typeSetIsConst( dtype )
+	end if
+	dtype = typeSetIsConst( typeAddrOf( dtype ) )
+	dtype = typeAddrOf( dtype )
+
+	return astNewDEREF( astNewCONV( dtype, NULL, astNewADDROF( lhs ), AST_CONVOPT_DONTWARNCONST ) )
+end function
+
 '' The ustring twin of astBuildStrPtr(): reinterpret the descriptor as a pointer
 '' to its data.
 ''

@@ -786,5 +786,91 @@ than smoothed, and no conclusion rests on either.
 Both types sit slightly above 4.0 on the win64 growth ratio. Since *both* show
 it equally it is the memory system at those sizes, not the growth strategy.
 
+## The usage showcase, and the five bugs it found
+
+`tests/ustring_usage_test.bas` — 142 checks. Written to exercise USTRING in
+*every* form the language allows: all declaration syntaxes, dynamic and fixed,
+arrays (static, dynamic, multi-dimensional, initialised, UDT-nested), UDTs with
+constructors/destructors/properties/operator overloads, inheritance with virtual
+methods, every parameter mode, every return form, `[]` indexing, and pointers.
+
+Writing it found **five real bugs**, none of which the existing suites reached.
+That is the lesson worth recording: the suites tested what I thought to test.
+
+| # | Bug | Symptom |
+|---|---|---|
+| 1 | `MID` statement was a **no-op** | compiled, ran, changed nothing |
+| 2 | `STRPTR` on a var-len ustring returned the **descriptor** | `STRPTR = VARPTR`, typed `CHAR PTR` |
+| 3 | Copy-back missing for a `USTRING * N` **argument** | callee's writes silently discarded |
+| 4 | `USTRING * N` accepted as a **function result** | miscompiled — pointer truncated to 16 bits |
+| 5 | `(*p)[0]` on a ustring **failed to parse** | worked for STRING |
+
+### 1. MID statement — the LSET bug, again
+
+`rtlUStrAssignMid()` built the call node and returned it without `astAdd()`.
+`cMidStmt` only checks the result for NULL, and the narrow `rtlStrAssignMid()`
+adds the node itself before returning. So it reported success and emitted
+nothing.
+
+**This is the identical mistake as `rtlStrLRSet` in phase 3.** Same root cause,
+same silent shape, found the same way — by checking a result rather than
+trusting a clean compile. Worth noting that knowing about a bug class once did
+not stop me writing it a second time.
+
+### 2. STRPTR returned the wrong pointer
+
+The `select case` in `cStrIdxOrMemberDeref`'s sibling in `parser-expr-unary.bas`
+handled `FB_DATATYPE_STRING` via `astBuildStrPtr()` and let everything else fall
+to `case else`, which takes `@expr`. For a var-len ustring that is the
+descriptor's address, not the text — so `STRPTR(u) = VARPTR(u)`, which is simply
+wrong for a dynamic string, and typed `CHAR PTR` on top.
+
+Fixed with `astBuildUStrDataPtr()`, deliberately separate from the existing
+`astBuildUStrPtr()`: that one yields a `WCHAR PTR` and asserts wchar is 16 bits,
+so it is Windows-only. `STRPTR` must work everywhere, and a code unit is uint16
+on every target, so `USHORT PTR` is the honest element type.
+
+### 3. Copy-back for fixed-length arguments
+
+The guard read `if( typeIsUstring( argdtype ) = FALSE )`, which excludes **both**
+ustring forms — but only the var-len form is passed as-is and so needs no
+write-back. A `USTRING * N` goes through a temp like any converted argument, so
+it needs copy-back, and `STRING * N` and `WSTRING * N` both do it. Narrowed to
+`argdtype <> FB_DATATYPE_USTRING`.
+
+### 4. Fixed-length function results
+
+`parser-proc.bas` rejects `STRING * N` and `WSTRING * N` results (error 55).
+`FIXUSTR` was missing from that `select case`, so it was accepted — and the gcc
+backend then emitted `uint16 R_FIXED( void )`, truncating a returned pointer to
+16 bits. Added to the `WCHAR` arm, which is the rule USTRING follows elsewhere.
+
+Only found because the generated C carried a warning I read:
+`cast to pointer from integer of different size`.
+
+### 5. Indexing a parenthesised expression
+
+`cStrIdxOrMemberDeref` listed CHAR/WCHAR/STRING/FIXSTR. Without the ustring
+types, `(*p)[0]` gave *Expected End-of-Line, found '['* while the same
+expression on a STRING worked.
+
+### What is confirmed *not* a USTRING limitation
+
+Checked against STRING and WSTRING controls rather than assumed:
+
+- `byref f as ustring * 8` → `error 324`. Identical for `STRING * N`,
+  `ZSTRING * N`, `WSTRING * N` — a general FB rule.
+- `r(t) = "x"` on a BYREF result → `error 58`, and the same for STRING.
+- `CAST(ustring, x)` → so does `CAST(string, x)`; casting *to* a string type is
+  not an fbc feature.
+- `USTRING * 8` holds 7 characters + terminator, exactly like `WSTRING * 8`.
+  `STRING * 8` holds 8 because it is not terminated.
+- `UCASE` leaves the German sharp s alone: simple case mapping only, one unit in
+  and one out, which is the documented behaviour and what every other FB string
+  type does.
+
+Verified on all three compilers: 142/0 under win32, win64 and linux-x86_64. The
+fbc suite is unchanged at 1154412 / 11 after all five fixes.
+
 Still open: `CONST`; ARM/JS/DOS remain unbuilt; and `USTRING * N` under
 `-gen llvm` is blocked by the pre-existing backend bug.

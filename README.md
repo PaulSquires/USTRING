@@ -182,6 +182,22 @@ print len(f)                         '' 5 — the text length
 `USTRING * N` is NUL-terminated and `LEN` returns the text length, following
 `WSTRING * N`. It does **not** space-pad the way `STRING * N` does.
 
+The `N` **includes the terminator**, so `USTRING * 8` holds 7 characters of
+text — again identical to `WSTRING * 8`, and unlike `STRING * 8`, which is not
+terminated and holds a full 8.
+
+A fixed-length string cannot be a `BYREF` parameter or a function result:
+
+```basic
+sub s( byref f as ustring * 8 )      '' error 324 — and the same for
+                                     '' STRING * N and WSTRING * N
+function f( ) as ustring * 8         '' error 55 — likewise
+```
+
+Both are general FB rules, not USTRING restrictions. Take a dynamic parameter
+(a fixed-length argument binds to it, and writes are copied back) and return
+the dynamic form.
+
 ---
 
 ## I/O
@@ -416,6 +432,7 @@ target is byte-identical to stock fbc.
 | Suite | Checks | What it covers |
 |---|---|---|
 | `tests/ustring_lang_test.bas` | 140 | the language surface end to end |
+| `tests/ustring_usage_test.bas` | 142 | **every form the language allows** — declarations, arrays, UDTs, inheritance, parameters, returns, `[]` indexing, pointers |
 | `tests/ustring_io_test.bas` | 36 | files, encodings, `PRINT USING`, round trips |
 | `tests/ustring_gfx_test.bas` | 13 | `DRAW STRING`, compared **pixel by pixel** against the narrow path |
 | `tests/ustr_codec_test.c` | 70 | UTF-8/16/32 codecs, including malformed input |

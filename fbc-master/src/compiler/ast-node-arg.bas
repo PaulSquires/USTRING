@@ -649,7 +649,13 @@ private function hCheckUStrParam _
 	'' say "function result, nothing to write back to" and silently disable
 	'' copy-back for every converted argument.
 	if( symbGetParamMode( param ) = FB_PARAMMODE_BYREF ) then
-		if( typeIsUstring( argdtype ) = FALSE ) then
+		'' Only the VAR-LEN form is excluded, because only it is passed as-is
+		'' below and so needs no write-back. A USTRING * N goes through a temp
+		'' like any other converted argument and must be copied back -- testing
+		'' typeIsUstring() here caught FIXUSTR too, so a fixed-length argument
+		'' silently lost whatever the callee wrote. STRING * N and WSTRING * N
+		'' both copy back, so this was a USTRING-only gap.
+		if( argdtype <> FB_DATATYPE_USTRING ) then
 			'' Excluded for literals (nothing to write back to), DEREFs (no
 			'' way to know the target is writable or big enough) and CALL
 			'' results (discarded) -- the same exclusions the z/wstring

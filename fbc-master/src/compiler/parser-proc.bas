@@ -420,8 +420,14 @@ sub cProcRetType _
 	else
 		'' check for invalid types
 		select case( typeGetDtAndPtrOnly( dtype ) )
-		case FB_DATATYPE_WCHAR
-			'' WSTRING allowed only if BYREF, or is prototype
+		case FB_DATATYPE_WCHAR, FB_DATATYPE_FIXUSTR
+			'' WSTRING/USTRING * N allowed only if BYREF, or is prototype.
+			''
+			'' FIXUSTR belongs here for the same reason WCHAR does: a fixed-length
+			'' result is a POINTER to a buffer, and returning it by value has
+			'' nowhere to put the buffer. Without this case a USTRING * N result
+			'' was accepted and then miscompiled -- the gcc backend typed the
+			'' result as a single uint16, truncating the pointer to 16 bits.
 			if( ((pattrib and FB_PROCATTRIB_RETURNBYREF) = 0) and (is_proto = FALSE) ) then
 				errReport( FB_ERRMSG_CANNOTRETURNFIXLENFROMFUNCTS )
 				'' error recovery: fake a type

@@ -137,7 +137,11 @@ function cStrIdxOrMemberDeref _
 
 	select case as const typeGet( dtype )
 	'' zstring indexing?
-	case FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR, FB_DATATYPE_STRING, FB_DATATYPE_FIXSTR
+	'' USTRING/FIXUSTR belong here too: without them, indexing a PARENTHESISED
+	'' ustring expression -- (*p)[0], or STRPTR(u)[0] -- failed to parse with
+	'' 'Expected End-of-Line, found [', while (*p)[0] on a STRING worked.
+	case FB_DATATYPE_CHAR, FB_DATATYPE_WCHAR, FB_DATATYPE_STRING, FB_DATATYPE_FIXSTR, _
+	     FB_DATATYPE_USTRING, FB_DATATYPE_FIXUSTR
 		'' '['?
 		if( lexGetToken( ) = CHAR_LBRACKET ) then
 			expr = cMemberDeref( dtype, subtype, expr, TRUE )
@@ -857,6 +861,20 @@ function cAddrOfExpression( ) as ASTNODE ptr
 
 		case FB_DATATYPE_WCHAR
 			expr = astNewCONV( typeAddrOf( FB_DATATYPE_WCHAR ), _
+			                   NULL, _
+			                   astNewADDROF( expr ) )
+
+		'' var-len ustring: the DATA pointer out of the descriptor, not the
+		'' descriptor's own address. Without this it fell through to 'case else'
+		'' below and returned @descriptor -- i.e. STRPTR() = VARPTR(), which for a
+		'' dynamic string is simply wrong, and typed as CHAR PTR on top of that.
+		case FB_DATATYPE_USTRING
+			expr = astBuildUStrDataPtr( expr )
+
+		'' USTRING * N: the variable IS the buffer, so its address is right --
+		'' but the element is a 16-bit code unit, not a byte.
+		case FB_DATATYPE_FIXUSTR
+			expr = astNewCONV( typeAddrOf( FB_DATATYPE_USHORT ), _
 			                   NULL, _
 			                   astNewADDROF( expr ) )
 
