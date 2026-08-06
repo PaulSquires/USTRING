@@ -539,6 +539,34 @@ dim as URec apost
 apost.s = "still works"
 chk( "descriptor pool not exhausted", len(apost.s), 11 )
 
+'' ------------------------------------------------------------------ READ
+''
+'' Before this was wired a USTRING fell through rtlDataRead's 'case else',
+'' which returns FALSE -- and the READ then compiled CLEANLY and DID NOTHING.
+'' No diagnostic, no assignment; the destination silently kept its old value.
+'' The multi-item form failed to compile at all, because the FALSE aborted the
+'' parser's comma loop.
+
+data "alpha", "b" + chr(&hC3) + chr(&hAA) + "ta"
+scope
+    dim as ustring a = "UNCHANGED", b = "UNCHANGED"
+    read a, b
+    chks( "READ assigns (it used to no-op)", a, "alpha" )
+    chks( "READ decodes UTF-8 source bytes", b, "b" + wchr(&h00EA) + "ta" )
+    chk ( "READ length is in code units", len(b), 4 )
+end scope
+
+data "x", "y", "z"
+scope
+    '' a ustring anywhere but last used to abort the comma loop
+    dim as ustring u1, u3
+    dim as string n2
+    read u1, n2, u3
+    chks( "READ mixed list, ustring first", u1, "x" )
+    chk ( "READ mixed list, string middle", n2 = "y", -1 )
+    chks( "READ mixed list, ustring last", u3, "z" )
+end scope
+
 print g_run; " checks,"; g_fail; " failed"
 if( g_fail <> 0 ) then
 	end 1

@@ -43,6 +43,9 @@ Version 1.20.0
   bytes again, so writing to an ENCODING file produced mojibake and reading one
   turned every non-ASCII character into U+FFFD. Without ENCODING a ustring file
   is UTF-8, unchanged.
+- USTRING: READ assigns DATA items. Previously a USTRING destination compiled
+  cleanly and did nothing at all, and a READ list with a USTRING before the
+  last item failed to parse.
 - USTRING is gated out of '-lang qb', as ZSTRING and WSTRING already are.
 
 [changed]

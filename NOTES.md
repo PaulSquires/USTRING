@@ -389,7 +389,7 @@ Phases 0-6 complete. Verified on win64 only, under both `-gen gcc` and
 | `tests/ustr_codec_test.c` | 70 |
 | `tests/ustr_core_test.c` | 38 |
 | `tests/ustr_wchar_test.c` | 25 (all three wchar widths) |
-| `tests/ustring_lang_test.bas` | 134 |
+| `tests/ustring_lang_test.bas` | 140 |
 | `tests/ustring_io_test.bas` | 36 |
 | `tests/ustring_gfx_test.bas` | 13 |
 | `tests/ustring_llvm_test.bas` | llvm output byte-identical to gcc |
@@ -607,5 +607,51 @@ or run on those targets. It makes the *width-dependent conversion logic*
 verified at all three widths, which was the single largest piece of never-
 executed code in the implementation.
 
-Still open: no target other than win64 has been built or run, and `USTRING * N`
-under `-gen llvm` is blocked by the pre-existing backend bug above.
+## Feature-completeness sweep
+
+Rather than assume, every string-shaped language surface was probed with a
+one-file snippet, with STRING and WSTRING compiled as controls. Confirmed
+working: `SELECT CASE`, `IIF`, `STRPTR`/`VARPTR`/`SADD`, `ustring ptr`,
+`PUT`/`GET`, `REDIM PRESERVE`, `ERASE`, UDT `CAST`/`LET`/property/operator
+overloads, `BYREF` returns, `COMMON`, unions, `SIZEOF`, type aliases, static
+locals, 2-D and UDT-nested arrays, `WITH`, variadics, `MID` statement, console
+`INPUT`/`LINE INPUT`, `ENVIRON`, `COMMAND`, `STR`/`VAL`/`HEX`/`WSTR`/`FORMAT`,
+fixed-length function results.
+
+Two things turned up.
+
+### READ silently did nothing (fixed)
+
+A USTRING fell through `rtlDataRead`'s `case else`, which returns FALSE. The
+single-destination form then **compiled cleanly and did nothing** — no
+diagnostic, no assignment, the variable kept its old value:
+
+```
+ustring READ gave: [UNCHANGED]
+string  READ gave: [alpha]
+```
+
+The multi-item form failed differently, as `error 3: Expected End-of-Line`,
+because the FALSE aborted the parser's comma loop — so `read x, y` broke
+whenever the ustring was not last.
+
+Fixed with the temp-STRING-and-convert pattern. Unlike `INPUT #` this needs no
+runtime branch: DATA literals come from the **source file**, not a file device,
+so there is no `ENCODING` in play and the bytes are UTF-8.
+
+### CONST is not supported (not fixed)
+
+`const u as ustring = "abc"` is rejected. `parser-decl-const.bas` accepts
+exactly one string type, `FB_DATATYPE_STRING`; **WSTRING is rejected too**, so
+ustring is no worse than the type it replaces — but it is worse than STRING,
+and the type's promise is that it works anywhere STRING does.
+
+Supporting it means carrying a `{fbuc}` literal symbol through
+`symbReuseOrAddConst`, the const value union and the expression path — shared
+machinery all three string types use. That is a feature addition, not a bug fix,
+and it was left alone rather than bolted on. The practical cost is small:
+`dim as ustring u = "abc"` works, a ustring literal is already a compile-time
+pool constant, so nothing is lost at runtime.
+
+Still open: `CONST` as above; no target other than win64 has been built or run;
+and `USTRING * N` under `-gen llvm` is blocked by the pre-existing backend bug.

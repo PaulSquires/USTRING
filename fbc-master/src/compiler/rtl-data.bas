@@ -196,6 +196,30 @@ function rtlDataRead _
 	args = 1
 	dtype = astGetDataType( varexpr )
 
+	'' ustring? Read into a temp STRING and convert.
+	''
+	'' Without this a USTRING fell through to 'case else', which returns FALSE --
+	'' and the READ then compiled CLEANLY and DID NOTHING AT ALL. No diagnostic,
+	'' no assignment, the destination simply kept its old value.
+	''
+	'' Unlike INPUT #, this needs no runtime branch: DATA literals come from the
+	'' SOURCE FILE, not a file device, so there is no ENCODING in play. The bytes
+	'' are UTF-8 and decoding them is right.
+	if( typeIsUstring( dtype ) ) then
+		dim as FBSYMBOL ptr tmp = symbAddTempVar( FB_DATATYPE_STRING )
+		astDtorListAdd( tmp )
+
+		astAdd( astBuildTempVarClear( tmp ) )
+
+		if( rtlDataRead( astNewVAR( tmp ) ) = FALSE ) then
+			exit function
+		end if
+
+		astAdd( rtlUStrAssign( varexpr, astNewVAR( tmp ) ) )
+
+		return TRUE
+	end if
+
 	select case as const typeGet( dtype )
 	case FB_DATATYPE_STRING, FB_DATATYPE_FIXSTR, FB_DATATYPE_CHAR
 		f = PROCLOOKUP( DATAREADSTR )
